@@ -1,53 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Do You Even Know Me?</title>
+    <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --accent: #ff0080;
+            --text: #2d3748;
+            --bg-card: #ffffff;
+            --error: #e53e3e;
+            --success: #38a169;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text);
+        }
+
+        .container {
+            background: var(--bg-card);
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            padding: 2rem;
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        h1 {
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+        }
+
+        .subtitle {
+            color: #718096;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+
+        .screen {
+            display: none;
+            width: 100%;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            align-items: stretch;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        button {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            border: none;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            width: 100%;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            filter: grayscale(0.5);
+        }
+
+        button.secondary {
+            background: #e2e8f0;
+            color: var(--text);
+        }
+
+        input {
+            padding: 0.8rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .lobby-code-display {
+            background: #f7fafc;
+            border: 2px dashed var(--primary);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .lobby-code {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+            letter-spacing: 2px;
+        }
+
+        .player-list {
+            text-align: left;
+            margin: 1rem 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .player-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            border-bottom: 1px solid #edf2f7;
+            animation: slideIn 0.2s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .host-badge {
+            background: #fbd38d;
+            color: #9c4221;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 1rem;
+            font-weight: bold;
+        }
+
+        /* Toast Notifications */
+        #toast-container {
+            position: absolute;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            width: 90%;
+        }
+
+        .toast {
+            background: #2d3748;
+            color: white;
+            padding: 0.8rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.error { background: var(--error); }
+        .toast.success { background: var(--success); }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 0.5rem;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
 <body>
     <div class="container">
-        <h1>🎭 Do You Even Know Me?</h1>
-        <p class="subtitle">How Well Do Your Friends Know You?</p>
+        <div id="toast-container"></div>
+
+        <div id="header">
+            <h1>🎭 Do You Even Know Me?</h1>
+            <p class="subtitle">How Well Do Your Friends Know You?</p>
+        </div>
 
         <!-- SCREEN 1: HOME -->
         <div id="homeScreen" class="screen active">
-            <button onclick="game.showCreateGame()">Create Game</button>
-            <button onclick="game.showJoinGame()">Join Game</button>
+            <button id="btnInitCreate" onclick="game.showCreateGame()" disabled>
+                <div class="loader"></div> Create Game
+            </button>
+            <button id="btnInitJoin" onclick="game.showJoinGame()" class="secondary" disabled>
+                <div class="loader"></div> Join Game
+            </button>
+            <p id="authStatus" style="font-size: 0.8rem; color: #a0aec0; margin-top: 1rem;">Connecting to server...</p>
         </div>
 
         <!-- SCREEN 2: CREATE -->
         <div id="createGameScreen" class="screen">
-            <input type="text" id="hostName" placeholder="Enter your name" maxlength="20">
-            <button onclick="game.createGame()">Create Game</button>
-            <button onclick="game.showHome()">Back</button>
+            <input type="text" id="hostName" placeholder="Enter your name" maxlength="12">
+            <button id="btnCreate" onclick="game.createGame()">Create Room</button>
+            <button onclick="game.showHome()" class="secondary">Back</button>
         </div>
 
         <!-- SCREEN 3: JOIN -->
         <div id="joinGameScreen" class="screen">
-            <input type="text" id="joinName" placeholder="Enter your name" maxlength="20">
-            <input type="text" id="gameCode" placeholder="Enter 4-letter game code" maxlength="4" style="text-transform: uppercase;">
-            <button onclick="game.joinGame()">Join Game</button>
-            <button onclick="game.showHome()">Back</button>
+            <input type="text" id="joinName" placeholder="Enter your name" maxlength="12">
+            <input type="text" id="gameCode" placeholder="Room Code (4 Letters)" maxlength="4" style="text-transform: uppercase;">
+            <button id="btnJoin" onclick="game.joinGame()">Join Room</button>
+            <button onclick="game.showHome()" class="secondary">Back</button>
         </div>
 
         <!-- SCREEN 4: LOBBY -->
         <div id="lobbyScreen" class="screen">
-            <div id="lobbyCode" style="text-align: center; font-size: 1.5em; font-weight: bold; color: #667eea; margin-bottom: 20px;"></div>
-            <h2 style="text-align: center; color: #333;">Waiting for Players...</h2>
-            <div id="lobbyPlayers" style="margin: 20px 0;"></div>
+            <div class="lobby-code-display">
+                <div style="font-size: 0.8rem; color: #718096; margin-bottom: 0.5rem;">ROOM CODE</div>
+                <div id="lobbyCode" class="lobby-code"></div>
+            </div>
+
+            <h3 style="margin: 0; color: var(--text);">Waiting for Players...</h3>
+            <div id="lobbyPlayers" class="player-list"></div>
             
-            <!-- FIXED: Added onclick handler here -->
             <button id="startGameBtn" style="display: none;" onclick="game.startGame()">Start Game</button>
-            <button onclick="location.reload()">Leave Game</button>
+            <button onclick="location.reload()" class="secondary">Leave Room</button>
         </div>
 
-        <!-- NEW SCREEN 5: GAMEPLAY -->
+        <!-- SCREEN 5: GAMEPLAY -->
         <div id="gameScreen" class="screen">
             <h2 id="gameStatus">Game Started!</h2>
-            <div id="questionArea" style="padding: 20px; text-align: center;">
+            <div id="questionArea" style="padding: 20px; text-align: center; background: #f7fafc; border-radius: 0.5rem; margin: 1rem 0;">
                 Waiting for host to pick a question...
             </div>
-            <button onclick="location.reload()">Quit</button>
+            <button onclick="location.reload()" class="secondary">Quit Game</button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -64,7 +286,59 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        signInAnonymously(auth).catch(console.error);
+        // UI Helpers
+        const ui = {
+            toast(message, type = 'info') {
+                const container = document.getElementById('toast-container');
+                const el = document.createElement('div');
+                el.className = `toast ${type}`;
+                el.textContent = message;
+                container.appendChild(el);
+
+                // Trigger reflow
+                el.offsetHeight;
+                el.classList.add('show');
+
+                setTimeout(() => {
+                    el.classList.remove('show');
+                    setTimeout(() => el.remove(), 300);
+                }, 3000);
+            },
+
+            setLoading(btnId, isLoading, originalText) {
+                const btn = document.getElementById(btnId);
+                if (isLoading) {
+                    btn.disabled = true;
+                    btn.innerHTML = `<span class="loading-spinner"></span> Loading...`;
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                }
+            },
+
+            showScreen(screenId) {
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                document.getElementById(screenId).classList.add('active');
+            }
+        };
+
+        // Initialize Auth
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('authStatus').style.display = 'none';
+                document.getElementById('btnInitCreate').disabled = false;
+                document.getElementById('btnInitJoin').disabled = false;
+
+                // Clear loading indicators on initial buttons
+                document.getElementById('btnInitCreate').innerHTML = 'Create Game';
+                document.getElementById('btnInitJoin').innerHTML = 'Join Game';
+            } else {
+                signInAnonymously(auth).catch((error) => {
+                    console.error(error);
+                    ui.toast('Failed to connect to server', 'error');
+                });
+            }
+        });
 
         const game = {
             gameCode: null,
@@ -74,8 +348,16 @@
             unsubscribe: null,
 
             async createGame() {
-                const name = document.getElementById('hostName').value.trim();
-                if (!name) return alert('Please enter your name');
+                const nameInput = document.getElementById('hostName');
+                const name = nameInput.value.trim();
+
+                if (!name) {
+                    ui.toast('Please enter your name', 'error');
+                    nameInput.focus();
+                    return;
+                }
+
+                ui.setLoading('btnCreate', true);
 
                 this.playerName = name.replace(/</g, "&lt;");
                 this.isHost = true;
@@ -84,32 +366,71 @@
                 try {
                     await setDoc(doc(db, 'games', this.gameCode), {
                         status: 'lobby',
-                        players: { [this.playerName]: { name: this.playerName, score: 0, isHost: true } }
+                        createdAt: new Date(),
+                        host: this.playerName,
+                        players: {
+                            [this.playerName]: {
+                                name: this.playerName,
+                                score: 0,
+                                isHost: true,
+                                joinedAt: new Date()
+                            }
+                        }
                     });
                     this.startListening();
                     this.showLobby();
                 } catch (error) {
                     console.error(error);
-                    alert("Database Error. Check Console.");
+                    ui.toast('Could not create game. Try again.', 'error');
+                } finally {
+                    ui.setLoading('btnCreate', false, 'Create Room');
                 }
             },
 
             async joinGame() {
-                const rawName = document.getElementById('joinName').value.trim();
-                const code = document.getElementById('gameCode').value.trim().toUpperCase();
-                if (!rawName || !code) return alert('Enter name and code');
+                const nameInput = document.getElementById('joinName');
+                const codeInput = document.getElementById('gameCode');
+
+                const rawName = nameInput.value.trim();
+                const code = codeInput.value.trim().toUpperCase();
+
+                if (!rawName) {
+                    ui.toast('Please enter your name', 'error');
+                    nameInput.focus();
+                    return;
+                }
+                if (!code || code.length !== 4) {
+                    ui.toast('Please enter a valid 4-letter code', 'error');
+                    codeInput.focus();
+                    return;
+                }
                 
                 const safeName = rawName.replace(/</g, "&lt;");
+                ui.setLoading('btnJoin', true);
 
                 try {
                     const gameRef = doc(db, 'games', code);
                     const snap = await getDoc(gameRef);
                     
                     if (snap.exists()) {
-                        if (snap.data().status !== 'lobby') return alert("Game already started!");
+                        const data = snap.data();
+                        if (data.status !== 'lobby') {
+                            ui.toast("Game has already started!", 'error');
+                            return;
+                        }
                         
+                        if (data.players && data.players[safeName]) {
+                             ui.toast("Name already taken in this room!", 'error');
+                             return;
+                        }
+
                         await updateDoc(gameRef, {
-                            [`players.${safeName}`]: { name: safeName, score: 0, isHost: false }
+                            [`players.${safeName}`]: {
+                                name: safeName,
+                                score: 0,
+                                isHost: false,
+                                joinedAt: new Date()
+                            }
                         });
 
                         this.playerName = safeName;
@@ -117,25 +438,34 @@
                         this.startListening();
                         this.showLobby();
                     } else {
-                        alert("Room not found!");
+                        ui.toast("Room not found! Check the code.", 'error');
                     }
                 } catch (error) {
                     console.error(error);
-                    alert("Error joining.");
+                    ui.toast("Error joining game.", 'error');
+                } finally {
+                    ui.setLoading('btnJoin', false, 'Join Room');
                 }
             },
 
-            // NEW FUNCTION: Actually starts the game
             async startGame() {
                 if (!this.isHost) return;
+
+                const btn = document.getElementById('startGameBtn');
+                btn.disabled = true;
+                btn.innerHTML = 'Starting...';
+
                 try {
                     await updateDoc(doc(db, 'games', this.gameCode), {
                         status: 'playing',
-                        currentRound: 1
+                        currentRound: 1,
+                        startedAt: new Date()
                     });
                 } catch (e) { 
                     console.error(e);
-                    alert("Error starting game");
+                    ui.toast("Error starting game", 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Start Game';
                 }
             },
 
@@ -146,47 +476,75 @@
                         const data = doc.data();
                         this.players = data.players || {};
                         
-                        // REACTIVE STATE CHANGE
-                        // If status changes to 'playing', everyone moves to game screen
                         if (data.status === 'playing') {
                             this.showGameScreen();
                         } else {
                             this.updateLobbyUI();
                         }
+                    } else {
+                        // Game was deleted or doesn't exist
+                        ui.toast('Game room closed.', 'error');
+                        setTimeout(() => location.reload(), 2000);
                     }
+                }, (error) => {
+                    console.error("Listener error:", error);
+                    ui.toast('Connection lost. Reconnecting...', 'error');
                 });
             },
 
             updateLobbyUI() {
                 const list = document.getElementById('lobbyPlayers');
                 list.innerHTML = '';
-                Object.values(this.players).forEach(p => {
+
+                // Convert to array and sort by join time if available, or name
+                const playersList = Object.values(this.players).sort((a, b) => {
+                    return (a.joinedAt?.seconds || 0) - (b.joinedAt?.seconds || 0);
+                });
+
+                playersList.forEach(p => {
                     const div = document.createElement('div');
                     div.className = 'player-item';
-                    div.innerHTML = `<span class="player-name">${p.name}</span> ${p.isHost ? '👑' : ''}`;
+                    div.innerHTML = `
+                        <span class="player-name">${p.name}</span>
+                        ${p.isHost ? '<span class="host-badge">HOST</span>' : ''}
+                    `;
                     list.appendChild(div);
                 });
-                document.getElementById('lobbyCode').textContent = `CODE: ${this.gameCode}`;
 
-                // SHOW START BUTTON ONLY FOR HOST
+                document.getElementById('lobbyCode').textContent = this.gameCode;
+
                 if (this.isHost) {
-                    document.getElementById('startGameBtn').style.display = 'block';
+                    const startBtn = document.getElementById('startGameBtn');
+                    startBtn.style.display = 'block';
+                    // Optional: Disable start if only 1 player?
+                    // if (playersList.length < 2) startBtn.disabled = true;
                 }
             },
 
             showGameScreen() {
-                this.hideAll();
-                document.getElementById('gameScreen').classList.add('active');
+                ui.showScreen('gameScreen');
             },
 
-            showCreateGame() { this.hideAll(); document.getElementById('createGameScreen').classList.add('active'); },
-            showJoinGame() { this.hideAll(); document.getElementById('joinGameScreen').classList.add('active'); },
-            showHome() { this.hideAll(); document.getElementById('homeScreen').classList.add('active'); },
-            showLobby() { this.hideAll(); document.getElementById('lobbyScreen').classList.add('active'); },
-            hideAll() { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); }
+            showCreateGame() { ui.showScreen('createGameScreen'); setTimeout(() => document.getElementById('hostName').focus(), 100); },
+            showJoinGame() { ui.showScreen('joinGameScreen'); setTimeout(() => document.getElementById('joinName').focus(), 100); },
+            showHome() { ui.showScreen('homeScreen'); },
+            showLobby() { ui.showScreen('lobbyScreen'); },
         };
 
-        // Expose to window so onclick works
+        // Expose to window
         window.game = game;
+
+        // Add Enter key support
+        document.getElementById('hostName').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') game.createGame();
+        });
+        document.getElementById('joinName').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('gameCode').focus();
+        });
+        document.getElementById('gameCode').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') game.joinGame();
+        });
+
     </script>
 </body>
+</html>

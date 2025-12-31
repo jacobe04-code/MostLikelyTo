@@ -123,6 +123,12 @@
             margin-bottom: 1rem;
         }
 
+        @media (max-width: 480px) {
+            .player-choice-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .player-choice-btn {
             background: #fff;
             border: 2px solid var(--primary);
@@ -151,7 +157,7 @@
             padding: 0.8rem;
             border: 2px solid #e2e8f0;
             border-radius: 0.5rem;
-            font-size: 1rem;
+            font-size: 16px; /* Prevents zoom on iOS */
             width: 100%;
             box-sizing: border-box;
             transition: border-color 0.2s;

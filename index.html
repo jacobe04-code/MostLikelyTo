@@ -1,121 +1,192 @@
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+<body>
+    <div class="container">
+        <h1>🎭 Do You Even Know Me?</h1>
+        <p class="subtitle">How Well Do Your Friends Know You?</p>
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyDU9G49CHpWAl_JDhhgeyiz8ezn5hg40Ek",
-        authDomain: "mostlikelyto.firebaseapp.com",
-        projectId: "mostlikelyto",
-        storageBucket: "mostlikelyto.firebasestorage.app",
-        messagingSenderId: "826481623010",
-        appId: "1:826481623010:web:d28043916cd39278e803bb",
-        measurementId: "G-1C20S44D0E"
-    };
+        <!-- SCREEN 1: HOME -->
+        <div id="homeScreen" class="screen active">
+            <button onclick="game.showCreateGame()">Create Game</button>
+            <button onclick="game.showJoinGame()">Join Game</button>
+        </div>
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+        <!-- SCREEN 2: CREATE -->
+        <div id="createGameScreen" class="screen">
+            <input type="text" id="hostName" placeholder="Enter your name" maxlength="20">
+            <button onclick="game.createGame()">Create Game</button>
+            <button onclick="game.showHome()">Back</button>
+        </div>
 
-    signInAnonymously(auth).catch(console.error);
+        <!-- SCREEN 3: JOIN -->
+        <div id="joinGameScreen" class="screen">
+            <input type="text" id="joinName" placeholder="Enter your name" maxlength="20">
+            <input type="text" id="gameCode" placeholder="Enter 4-letter game code" maxlength="4" style="text-transform: uppercase;">
+            <button onclick="game.joinGame()">Join Game</button>
+            <button onclick="game.showHome()">Back</button>
+        </div>
 
-    const game = {
-        gameCode: null,
-        playerName: null,
-        players: {},
-        isHost: false,
-        unsubscribe: null,
-
-        async createGame() {
-            const name = document.getElementById('hostName').value.trim();
-            if (!name) return alert('Please enter your name');
-
-            // Prevent HTML injection in local state
-            this.playerName = name.replace(/</g, "&lt;");
-            this.isHost = true;
-            this.gameCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-
-            try {
-                await setDoc(doc(db, 'games', this.gameCode), {
-                    status: 'lobby',
-                    players: { [this.playerName]: { name: this.playerName, score: 0, isHost: true } }
-                });
-                this.startListening();
-                this.showLobby();
-            } catch (error) {
-                console.error(error);
-                alert("Permission denied. Check Console for details.");
-            }
-        },
-
-        async joinGame() {
-            const rawName = document.getElementById('joinName').value.trim();
-            const code = document.getElementById('gameCode').value.trim().toUpperCase();
-            if (!rawName || !code) return alert('Enter name and code');
+        <!-- SCREEN 4: LOBBY -->
+        <div id="lobbyScreen" class="screen">
+            <div id="lobbyCode" style="text-align: center; font-size: 1.5em; font-weight: bold; color: #667eea; margin-bottom: 20px;"></div>
+            <h2 style="text-align: center; color: #333;">Waiting for Players...</h2>
+            <div id="lobbyPlayers" style="margin: 20px 0;"></div>
             
-            const safeName = rawName.replace(/</g, "&lt;");
+            <!-- FIXED: Added onclick handler here -->
+            <button id="startGameBtn" style="display: none;" onclick="game.startGame()">Start Game</button>
+            <button onclick="location.reload()">Leave Game</button>
+        </div>
 
-            try {
-                const gameRef = doc(db, 'games', code);
-                const snap = await getDoc(gameRef);
-                
-                if (snap.exists()) {
-                    // FIX: Atomic update using dot notation to prevent race conditions
-                    // This ensures we don't overwrite other players joining simultaneously
-                    await updateDoc(gameRef, {
-                        [`players.${safeName}`]: { name: safeName, score: 0, isHost: false }
+        <!-- NEW SCREEN 5: GAMEPLAY -->
+        <div id="gameScreen" class="screen">
+            <h2 id="gameStatus">Game Started!</h2>
+            <div id="questionArea" style="padding: 20px; text-align: center;">
+                Waiting for host to pick a question...
+            </div>
+            <button onclick="location.reload()">Quit</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDU9G49CHpWAl_JDhhgeyiz8ezn5hg40Ek",
+            authDomain: "mostlikelyto.firebaseapp.com",
+            projectId: "mostlikelyto",
+            storageBucket: "mostlikelyto.firebasestorage.app",
+            messagingSenderId: "826481623010",
+            appId: "1:826481623010:web:d28043916cd39278e803bb",
+            measurementId: "G-1C20S44D0E"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        signInAnonymously(auth).catch(console.error);
+
+        const game = {
+            gameCode: null,
+            playerName: null,
+            players: {},
+            isHost: false,
+            unsubscribe: null,
+
+            async createGame() {
+                const name = document.getElementById('hostName').value.trim();
+                if (!name) return alert('Please enter your name');
+
+                this.playerName = name.replace(/</g, "&lt;");
+                this.isHost = true;
+                this.gameCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+
+                try {
+                    await setDoc(doc(db, 'games', this.gameCode), {
+                        status: 'lobby',
+                        players: { [this.playerName]: { name: this.playerName, score: 0, isHost: true } }
                     });
-
-                    this.playerName = safeName;
-                    this.gameCode = code;
                     this.startListening();
                     this.showLobby();
-                } else {
-                    alert("Room not found!");
+                } catch (error) {
+                    console.error(error);
+                    alert("Database Error. Check Console.");
                 }
-            } catch (error) {
-                console.error(error);
-                alert("Error joining. See console.");
-            }
-        },
+            },
 
-        startListening() {
-            if (this.unsubscribe) this.unsubscribe();
-            this.unsubscribe = onSnapshot(doc(db, 'games', this.gameCode), (doc) => {
-                if (doc.exists()) {
-                    this.players = doc.data().players || {};
-                    this.updateLobbyUI();
+            async joinGame() {
+                const rawName = document.getElementById('joinName').value.trim();
+                const code = document.getElementById('gameCode').value.trim().toUpperCase();
+                if (!rawName || !code) return alert('Enter name and code');
+                
+                const safeName = rawName.replace(/</g, "&lt;");
+
+                try {
+                    const gameRef = doc(db, 'games', code);
+                    const snap = await getDoc(gameRef);
+                    
+                    if (snap.exists()) {
+                        if (snap.data().status !== 'lobby') return alert("Game already started!");
+                        
+                        await updateDoc(gameRef, {
+                            [`players.${safeName}`]: { name: safeName, score: 0, isHost: false }
+                        });
+
+                        this.playerName = safeName;
+                        this.gameCode = code;
+                        this.startListening();
+                        this.showLobby();
+                    } else {
+                        alert("Room not found!");
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert("Error joining.");
                 }
-            });
-        },
+            },
 
-        updateLobbyUI() {
-            const list = document.getElementById('lobbyPlayers');
-            list.innerHTML = '';
-            Object.values(this.players).forEach(p => {
-                const div = document.createElement('div');
-                div.className = 'player-item';
-                
-                // FIX: Use textContent to prevent XSS attacks
-                const nameSpan = document.createElement('span');
-                nameSpan.className = 'player-name';
-                nameSpan.textContent = p.name;
-                
-                div.appendChild(nameSpan);
-                if (p.isHost) div.append(' 👑');
-                list.appendChild(div);
-            });
-            document.getElementById('lobbyCode').textContent = `CODE: ${this.gameCode}`;
-        },
+            // NEW FUNCTION: Actually starts the game
+            async startGame() {
+                if (!this.isHost) return;
+                try {
+                    await updateDoc(doc(db, 'games', this.gameCode), {
+                        status: 'playing',
+                        currentRound: 1
+                    });
+                } catch (e) { 
+                    console.error(e);
+                    alert("Error starting game");
+                }
+            },
 
-        // ... (Keep your existing UI toggle functions here) ...
-        showCreateGame() { this.hideAll(); document.getElementById('createGameScreen').classList.add('active'); },
-        showJoinGame() { this.hideAll(); document.getElementById('joinGameScreen').classList.add('active'); },
-        showHome() { this.hideAll(); document.getElementById('homeScreen').classList.add('active'); },
-        showLobby() { this.hideAll(); document.getElementById('lobbyScreen').classList.add('active'); },
-        hideAll() { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); }
-    };
+            startListening() {
+                if (this.unsubscribe) this.unsubscribe();
+                this.unsubscribe = onSnapshot(doc(db, 'games', this.gameCode), (doc) => {
+                    if (doc.exists()) {
+                        const data = doc.data();
+                        this.players = data.players || {};
+                        
+                        // REACTIVE STATE CHANGE
+                        // If status changes to 'playing', everyone moves to game screen
+                        if (data.status === 'playing') {
+                            this.showGameScreen();
+                        } else {
+                            this.updateLobbyUI();
+                        }
+                    }
+                });
+            },
 
-    // CRITICAL FIX: Expose game object to global scope so HTML onclick works
-    window.game = game;
-</script>
+            updateLobbyUI() {
+                const list = document.getElementById('lobbyPlayers');
+                list.innerHTML = '';
+                Object.values(this.players).forEach(p => {
+                    const div = document.createElement('div');
+                    div.className = 'player-item';
+                    div.innerHTML = `<span class="player-name">${p.name}</span> ${p.isHost ? '👑' : ''}`;
+                    list.appendChild(div);
+                });
+                document.getElementById('lobbyCode').textContent = `CODE: ${this.gameCode}`;
+
+                // SHOW START BUTTON ONLY FOR HOST
+                if (this.isHost) {
+                    document.getElementById('startGameBtn').style.display = 'block';
+                }
+            },
+
+            showGameScreen() {
+                this.hideAll();
+                document.getElementById('gameScreen').classList.add('active');
+            },
+
+            showCreateGame() { this.hideAll(); document.getElementById('createGameScreen').classList.add('active'); },
+            showJoinGame() { this.hideAll(); document.getElementById('joinGameScreen').classList.add('active'); },
+            showHome() { this.hideAll(); document.getElementById('homeScreen').classList.add('active'); },
+            showLobby() { this.hideAll(); document.getElementById('lobbyScreen').classList.add('active'); },
+            hideAll() { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); }
+        };
+
+        // Expose to window so onclick works
+        window.game = game;
+    </script>
+</body>

@@ -1,164 +1,121 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Do You Even Know Me? - Multiplayer Game</title>
-    <style>
-        * {margin: 0; padding: 0; box-sizing: border-box;}
-        body {font-family: 'Arial', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px;}
-        .container {background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 800px; width: 100%; padding: 40px;}
-        h1 {color: #667eea; text-align: center; margin-bottom: 10px; font-size: 2.5em;}
-        .subtitle {text-align: center; color: #666; margin-bottom: 30px; font-size: 1.1em;}
-        .screen {display: none;}
-        .screen.active {display: block;}
-        input, button {width: 100%; padding: 15px; margin: 10px 0; border: 2px solid #667eea; border-radius: 10px; font-size: 1em;}
-        button {background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; cursor: pointer; font-weight: bold; transition: transform 0.2s, box-shadow 0.2s;}
-        button:hover {transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);}
-        button:disabled {background: #ccc; cursor: not-allowed; transform: none;}
-        .option-button {background: white; color: #667eea; border: 3px solid #667eea; margin: 15px 0; padding: 20px; font-size: 1.1em; transition: all 0.3s;}
-        .player-item {background: white; padding: 15px; margin: 10px 0; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); color: #333;}
-        .player-name {font-weight: bold; color: #667eea;}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🎭 Do You Even Know Me?</h1>
-        <p class="subtitle">How Well Do Your Friends Know You?</p>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
-        <div id="homeScreen" class="screen active">
-            <button onclick="game.showCreateGame()">Create Game</button>
-            <button onclick="game.showJoinGame()">Join Game</button>
-        </div>
+    const firebaseConfig = {
+        apiKey: "AIzaSyDU9G49CHpWAl_JDhhgeyiz8ezn5hg40Ek",
+        authDomain: "mostlikelyto.firebaseapp.com",
+        projectId: "mostlikelyto",
+        storageBucket: "mostlikelyto.firebasestorage.app",
+        messagingSenderId: "826481623010",
+        appId: "1:826481623010:web:d28043916cd39278e803bb",
+        measurementId: "G-1C20S44D0E"
+    };
 
-        <div id="createGameScreen" class="screen">
-            <input type="text" id="hostName" placeholder="Enter your name" maxlength="20">
-            <button onclick="game.createGame()">Create Game</button>
-            <button onclick="game.showHome()">Back</button>
-        </div>
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-        <div id="joinGameScreen" class="screen">
-            <input type="text" id="joinName" placeholder="Enter your name" maxlength="20">
-            <input type="text" id="gameCode" placeholder="Enter 4-letter game code" maxlength="4" style="text-transform: uppercase;">
-            <button onclick="game.joinGame()">Join Game</button>
-            <button onclick="game.showHome()">Back</button>
-        </div>
+    signInAnonymously(auth).catch(console.error);
 
-        <div id="lobbyScreen" class="screen">
-            <div id="lobbyCode" style="text-align: center; font-size: 1.5em; font-weight: bold; color: #667eea; margin-bottom: 20px;"></div>
-            <h2 style="text-align: center; color: #333;">Waiting for Players...</h2>
-            <div id="lobbyPlayers" style="margin: 20px 0;"></div>
-            <button id="startGameBtn" style="display: none;">Start Game</button>
-            <button onclick="location.reload()">Leave Game</button>
-        </div>
-    </div>
+    const game = {
+        gameCode: null,
+        playerName: null,
+        players: {},
+        isHost: false,
+        unsubscribe: null,
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        async createGame() {
+            const name = document.getElementById('hostName').value.trim();
+            if (!name) return alert('Please enter your name');
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDU9G49CHpWAl_JDhhgeyiz8ezn5hg40Ek",
-            authDomain: "mostlikelyto.firebaseapp.com",
-            projectId: "mostlikelyto",
-            storageBucket: "mostlikelyto.firebasestorage.app",
-            messagingSenderId: "826481623010",
-            appId: "1:826481623010:web:d28043916cd39278e803bb",
-            measurementId: "G-1C20S44D0E"
-        };
+            // Prevent HTML injection in local state
+            this.playerName = name.replace(/</g, "&lt;");
+            this.isHost = true;
+            this.gameCode = Math.random().toString(36).substring(2, 6).toUpperCase();
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+            try {
+                await setDoc(doc(db, 'games', this.gameCode), {
+                    status: 'lobby',
+                    players: { [this.playerName]: { name: this.playerName, score: 0, isHost: true } }
+                });
+                this.startListening();
+                this.showLobby();
+            } catch (error) {
+                console.error(error);
+                alert("Permission denied. Check Console for details.");
+            }
+        },
 
-        // Sign in anonymously immediately
-        signInAnonymously(auth).catch(err => console.error("Auth Error", err));
+        async joinGame() {
+            const rawName = document.getElementById('joinName').value.trim();
+            const code = document.getElementById('gameCode').value.trim().toUpperCase();
+            if (!rawName || !code) return alert('Enter name and code');
+            
+            const safeName = rawName.replace(/</g, "&lt;");
 
-        const game = {
-            gameCode: null,
-            playerName: null,
-            players: {},
-            isHost: false,
-            unsubscribe: null,
-
-            async createGame() {
-                const name = document.getElementById('hostName').value.trim();
-                if (!name) { alert('Please enter your name'); return; }
-
-                this.playerName = name;
-                this.isHost = true;
-                this.gameCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-
-                try {
-                    const gameRef = doc(db, 'games', this.gameCode);
-                    await setDoc(gameRef, {
-                        status: 'lobby',
-                        players: { [name]: { name: name, score: 0, isHost: true } }
+            try {
+                const gameRef = doc(db, 'games', code);
+                const snap = await getDoc(gameRef);
+                
+                if (snap.exists()) {
+                    // FIX: Atomic update using dot notation to prevent race conditions
+                    // This ensures we don't overwrite other players joining simultaneously
+                    await updateDoc(gameRef, {
+                        [`players.${safeName}`]: { name: safeName, score: 0, isHost: false }
                     });
+
+                    this.playerName = safeName;
+                    this.gameCode = code;
                     this.startListening();
                     this.showLobby();
-                } catch (error) {
-                    alert("Check your Firebase Rules! Permission denied.");
+                } else {
+                    alert("Room not found!");
                 }
-            },
+            } catch (error) {
+                console.error(error);
+                alert("Error joining. See console.");
+            }
+        },
 
-            async joinGame() {
-                const name = document.getElementById('joinName').value.trim();
-                const code = document.getElementById('gameCode').value.trim().toUpperCase();
-                if (!name || !code) { alert('Enter name and code'); return; }
-
-                try {
-                    const gameRef = doc(db, 'games', code);
-                    const snap = await getDoc(gameRef);
-                    if (snap.exists()) {
-                        const players = snap.data().players;
-                        players[name] = { name: name, score: 0, isHost: false };
-                        await updateDoc(gameRef, { players: players });
-                        this.playerName = name;
-                        this.gameCode = code;
-                        this.startListening();
-                        this.showLobby();
-                    } else {
-                        alert("Room not found!");
-                    }
-                } catch (error) {
-                    alert("Error joining. Check Firebase Rules.");
+        startListening() {
+            if (this.unsubscribe) this.unsubscribe();
+            this.unsubscribe = onSnapshot(doc(db, 'games', this.gameCode), (doc) => {
+                if (doc.exists()) {
+                    this.players = doc.data().players || {};
+                    this.updateLobbyUI();
                 }
-            },
+            });
+        },
 
-            startListening() {
-                if (this.unsubscribe) this.unsubscribe();
-                const gameRef = doc(db, 'games', this.gameCode);
-                this.unsubscribe = onSnapshot(gameRef, (doc) => {
-                    if (doc.exists()) {
-                        this.players = doc.data().players;
-                        this.updateLobbyUI();
-                    }
-                });
-            },
+        updateLobbyUI() {
+            const list = document.getElementById('lobbyPlayers');
+            list.innerHTML = '';
+            Object.values(this.players).forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'player-item';
+                
+                // FIX: Use textContent to prevent XSS attacks
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'player-name';
+                nameSpan.textContent = p.name;
+                
+                div.appendChild(nameSpan);
+                if (p.isHost) div.append(' 👑');
+                list.appendChild(div);
+            });
+            document.getElementById('lobbyCode').textContent = `CODE: ${this.gameCode}`;
+        },
 
-            updateLobbyUI() {
-                const list = document.getElementById('lobbyPlayers');
-                list.innerHTML = '';
-                Object.values(this.players).forEach(p => {
-                    const div = document.createElement('div');
-                    div.className = 'player-item';
-                    div.innerHTML = `<span class="player-name">${p.name}</span> ${p.isHost ? '👑' : ''}`;
-                    list.appendChild(div);
-                });
-                document.getElementById('lobbyCode').textContent = `CODE: ${this.gameCode}`;
-            },
+        // ... (Keep your existing UI toggle functions here) ...
+        showCreateGame() { this.hideAll(); document.getElementById('createGameScreen').classList.add('active'); },
+        showJoinGame() { this.hideAll(); document.getElementById('joinGameScreen').classList.add('active'); },
+        showHome() { this.hideAll(); document.getElementById('homeScreen').classList.add('active'); },
+        showLobby() { this.hideAll(); document.getElementById('lobbyScreen').classList.add('active'); },
+        hideAll() { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); }
+    };
 
-            showCreateGame() { this.hideAll(); document.getElementById('createGameScreen').classList.add('active'); },
-            showJoinGame() { this.hideAll(); document.getElementById('joinGameScreen').classList.add('active'); },
-            showHome() { this.hideAll(); document.getElementById('homeScreen').classList.add('active'); },
-            showLobby() { this.hideAll(); document.getElementById('lobbyScreen').classList.add('active'); },
-            hideAll() { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); }
-        };
-
-        // EXPOSE TO WINDOW for HTML onclick
-        window.game = game;
-    </script>
-</body>
-</html>
+    // CRITICAL FIX: Expose game object to global scope so HTML onclick works
+    window.game = game;
+</script>

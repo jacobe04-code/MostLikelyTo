@@ -383,46 +383,59 @@
   appId: "1:826481623010:web:d28043916cd39278e803bb",
   measurementId: "G-1C20S44D0E"
 };
-            createGame() {
-                const name = document.getElementById('hostName').value.trim();
-                if (!name) {
-                    alert('Please enter your name');
-                    return;
-                }
-                
-                this.playerName = name;
-                this.isHost = true;
-                this.gameCode = this.generateCode();
-                
-                // TODO: Firebase - Create game session
-                // await firebase.database().ref('games/' + this.gameCode).set({...})
-                
-                this.players = {
-                    [name]: { name: name, score: 0, isHost: true }
-                };
-                
-                this.showLobby();
-            },
+            async createGame() {
+    const name = document.getElementById('hostName').value.trim();
+    if (!name) { alert('Please enter your name'); return; }
 
-            joinGame() {
-                const name = document.getElementById('joinName').value.trim();
-                const code = document.getElementById('gameCode').value.trim().toUpperCase();
-                
-                if (!name || !code) {
-                    alert('Please enter your name and game code');
-                    return;
-                }
-                
-                this.playerName = name;
-                this.gameCode = code;
-                this.isHost = false;
-                
-                // TODO: Firebase - Join game session
-                // Check if game exists and add player
-                
-                this.players[name] = { name: name, score: 0 };
-                this.showLobby();
-            },
+    this.playerName = name;
+    this.isHost = true;
+    this.gameCode = this.generateCode();
+
+    // FIXED: Real Firebase logic to create the session
+    try {
+        const gameRef = doc(db, 'games', this.gameCode);
+        await setDoc(gameRef, {
+            status: 'lobby',
+            createdAt: new Date().toISOString(),
+            players: {
+                [name]: { name: name, score: 0, isHost: true }
+            }
+        });
+        
+        this.players = { [name]: { name: name, score: 0, isHost: true } };
+        this.showLobby();
+    } catch (error) {
+        console.error("Error creating game:", error);
+        alert("Failed to create game. Check your Firebase Rules!");
+    }
+},
+
+async joinGame() {
+    const name = document.getElementById('joinName').value.trim();
+    const code = document.getElementById('gameCode').value.trim().toUpperCase();
+    if (!name || !code) { alert('Please enter your name and game code'); return; }
+
+    try {
+        const gameRef = doc(db, 'games', code);
+        const snap = await getDoc(gameRef);
+        
+        if (snap.exists()) {
+            const data = snap.data();
+            const players = data.players || {};
+            players[name] = { name: name, score: 0, isHost: false };
+            await updateDoc(gameRef, { players: players });
+            
+            this.playerName = name;
+            this.gameCode = code;
+            this.players = players;
+            this.showLobby();
+        } else {
+            alert("Game room not found!");
+        }
+    } catch (error) {
+        console.error("Join error:", error);
+    }
+},
 
             startGame() {
                 if (!this.isHost) return;

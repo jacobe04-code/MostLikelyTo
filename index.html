@@ -220,10 +220,10 @@
         <!-- SCREEN 1: HOME -->
         <div id="homeScreen" class="screen active">
             <button id="btnInitCreate" onclick="game.showCreateGame()" disabled>
-                <div class="loader"></div> Create Game
+                <div class="loading-spinner"></div> Create Game
             </button>
             <button id="btnInitJoin" onclick="game.showJoinGame()" class="secondary" disabled>
-                <div class="loader"></div> Join Game
+                <div class="loading-spinner"></div> Join Game
             </button>
             <p id="authStatus" style="font-size: 0.8rem; color: #a0aec0; margin-top: 1rem;">Connecting to server...</p>
         </div>
@@ -268,9 +268,9 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDU9G49CHpWAl_JDhhgeyiz8ezn5hg40Ek",

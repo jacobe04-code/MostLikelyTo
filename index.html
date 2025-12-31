@@ -190,6 +190,21 @@
             font-weight: bold;
         }
 
+        /* Leaderboard Styles */
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        .leaderboard-table td {
+            padding: 0.8rem;
+            border-bottom: 1px solid #edf2f7;
+        }
+        .leaderboard-table tr:first-child td {
+            font-weight: bold;
+            color: var(--secondary);
+        }
+
         /* Toast Notifications */
         #toast-container {
             position: absolute;
@@ -235,6 +250,20 @@
 
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+
+        .result-card {
+            background: #f7fafc;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+        .result-answer {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
         }
     </style>
 </head>
@@ -289,42 +318,74 @@
 
         <!-- SCREEN 5: GAMEPLAY -->
         <div id="gameScreen" class="screen">
-            <div class="game-header-info">
-                Round <span id="roundNumber">1</span> •
-                Subject: <span id="subjectName" class="highlight-name">---</span>
+            <!-- Phase 1: Setup (Everyone picks Q&A) -->
+            <div id="phaseSetup" style="display: none;">
+                <div id="setupStep1">
+                    <h3>Pick Your Question</h3>
+                    <p>Choose the question others will answer about YOU.</p>
+                    <div id="setupOptions"></div>
+                </div>
+                <div id="setupStep2" style="display: none;">
+                    <h3>Your Answer</h3>
+                    <p id="mySelectedQuestion" style="font-weight: bold; color: var(--secondary);"></p>
+                    <textarea id="mySetupAnswer" rows="3" placeholder="What is the honest truth?" maxlength="100"></textarea>
+                    <button onclick="game.submitSetup()" style="margin-top: 1rem;">Lock In</button>
+                </div>
+                <div id="setupWait" style="display: none;">
+                    <h3>Waiting for others...</h3>
+                    <div class="loading-spinner" style="border-color: var(--primary); border-top-color: transparent;"></div>
+                    <p style="margin-top: 1rem; font-size: 0.9rem;">Everyone must finish before we start!</p>
+                </div>
             </div>
 
-            <!-- Phase: Selecting -->
-            <div id="phaseSelecting" style="display: none;">
-                <div id="selectingActive">
-                    <h3>Pick a Question!</h3>
-                    <p style="font-size: 0.9rem; color: #718096;">Choose a question for others to answer about you.</p>
-                    <div id="questionOptions"></div>
+            <!-- Phase 2: Voting (Round Robin) -->
+            <div id="phaseVoting" style="display: none;">
+                <div class="game-header-info">
+                    Subject: <span id="votingSubject" class="highlight-name">---</span>
                 </div>
-                <div id="selectingPassive">
-                    <h3>Waiting...</h3>
-                    <p><span id="waitingForName" class="highlight-name"></span> is choosing a question.</p>
+
+                <h3 id="votingQuestion" style="color: var(--secondary); margin-bottom: 1.5rem;">---</h3>
+
+                <div id="votingActive">
+                    <p>What did <span id="votingSubjectRef" class="highlight-name"></span> answer?</p>
+                    <textarea id="voteInput" rows="3" placeholder="Type your guess..." maxlength="100"></textarea>
+                    <button id="btnSubmitVote" onclick="game.submitVote()" style="margin-top: 1rem;">Submit Guess</button>
+                </div>
+
+                <div id="votingPassive">
+                    <p>You are the subject! Relax and watch them guess.</p>
                     <div class="loading-spinner" style="border-color: var(--primary); border-top-color: transparent;"></div>
                 </div>
+
+                <div id="votingWait" style="display:none; color: #38a169; margin-top: 1rem;">Guess Submitted! Waiting for others...</div>
             </div>
 
-            <!-- Phase: Answering -->
-            <div id="phaseAnswering" style="display: none;">
-                <h3 id="currentQuestionText" style="color: var(--secondary); margin-bottom: 1.5rem;">---</h3>
+            <!-- Phase 3: Results (Mini-Round Reveal) -->
+            <div id="phaseResults" style="display: none;">
+                 <h2 style="color: var(--secondary);">Round Results!</h2>
+                 <p>Question: <b id="resultQuestion">---</b></p>
 
-                <div id="answeringActive">
-                    <p>What is your <b>honest</b> answer?</p>
-                </div>
-                <div id="answeringPassive">
-                    <p>What do you think <span id="targetName" class="highlight-name"></span> would say?</p>
-                </div>
+                 <div class="result-card">
+                     <small>Subject's Answer (<span id="resultSubjectName"></span>):</small>
+                     <div id="resultRealAnswer" class="result-answer">---</div>
+                 </div>
 
-                <textarea id="answerInput" rows="3" placeholder="Type your answer here..." maxlength="100"></textarea>
-                <button id="btnSubmitAnswer" onclick="game.submitAnswer()" style="margin-top: 1rem;">Submit Answer</button>
-                <p id="waitForOthersMsg" style="display:none; color: #38a169; margin-top: 1rem;">Answer Submitted! Waiting for others...</p>
+                 <div id="guessesList" style="text-align: left;"></div>
+
+                 <div id="hostControls" style="margin-top: 2rem; display: none;">
+                     <button onclick="game.nextRound()">Next Round</button>
+                 </div>
+                 <div id="playerControls" style="margin-top: 2rem; display: none;">
+                     <p>Waiting for host...</p>
+                 </div>
             </div>
 
-            <button onclick="location.reload()" class="secondary" style="margin-top: 2rem;">Quit Game</button>
+            <!-- Phase 4: Leaderboard -->
+            <div id="phaseLeaderboard" style="display: none;">
+                <h2>🏆 Final Leaderboard</h2>
+                <table class="leaderboard-table" id="finalScores"></table>
+                <button onclick="location.reload()" style="margin-top: 2rem;">Back to Main Menu</button>
+            </div>
         </div>
     </div>
 
@@ -373,8 +434,7 @@
                 el.textContent = message;
                 container.appendChild(el);
 
-                // Trigger reflow
-                el.offsetHeight;
+                el.offsetHeight; // trigger reflow
                 el.classList.add('show');
 
                 setTimeout(() => {
@@ -385,6 +445,7 @@
 
             setLoading(btnId, isLoading, originalText) {
                 const btn = document.getElementById(btnId);
+                if(!btn) return;
                 if (isLoading) {
                     btn.disabled = true;
                     btn.innerHTML = `<span class="loading-spinner"></span> Loading...`;
@@ -397,6 +458,13 @@
             showScreen(screenId) {
                 document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
                 document.getElementById(screenId).classList.add('active');
+            },
+
+            showPhase(phaseId) {
+                ['phaseSetup', 'phaseVoting', 'phaseResults', 'phaseLeaderboard'].forEach(id => {
+                    document.getElementById(id).style.display = 'none';
+                });
+                document.getElementById(phaseId).style.display = 'block';
             }
         };
 
@@ -420,26 +488,26 @@
         const game = {
             gameCode: null,
             playerName: null,
-            players: {},
-            gameState: null, // holds full doc data
+            players: {}, // local cache of player objects
+            gameState: null,
             isHost: false,
             unsubscribe: null,
+
+            // --- Lobby Actions ---
 
             async createGame() {
                 const nameInput = document.getElementById('hostName');
                 const name = nameInput.value.trim();
 
-                if (!name) {
-                    ui.toast('Please enter your name', 'error');
-                    nameInput.focus();
-                    return;
-                }
-
+                if (!name) { ui.toast('Name required', 'error'); return; }
                 ui.setLoading('btnCreate', true);
 
                 this.playerName = name.replace(/</g, "&lt;");
                 this.isHost = true;
                 this.gameCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+
+                // Immediate UI update
+                document.getElementById('lobbyCode').textContent = this.gameCode;
 
                 try {
                     await setDoc(doc(db, 'games', this.gameCode), {
@@ -459,7 +527,7 @@
                     this.showLobby();
                 } catch (error) {
                     console.error(error);
-                    ui.toast('Could not create game. Try again.', 'error');
+                    ui.toast('Error creating game', 'error');
                 } finally {
                     ui.setLoading('btnCreate', false, 'Create Room');
                 }
@@ -468,21 +536,10 @@
             async joinGame() {
                 const nameInput = document.getElementById('joinName');
                 const codeInput = document.getElementById('gameCode');
-
                 const rawName = nameInput.value.trim();
                 const code = codeInput.value.trim().toUpperCase();
-
-                if (!rawName) {
-                    ui.toast('Please enter your name', 'error');
-                    nameInput.focus();
-                    return;
-                }
-                if (!code || code.length !== 4) {
-                    ui.toast('Please enter a valid 4-letter code', 'error');
-                    codeInput.focus();
-                    return;
-                }
                 
+                if (!rawName || code.length !== 4) { ui.toast('Invalid name or code', 'error'); return; }
                 const safeName = rawName.replace(/</g, "&lt;");
                 ui.setLoading('btnJoin', true);
 
@@ -490,34 +547,37 @@
                     const gameRef = doc(db, 'games', code);
                     const snap = await getDoc(gameRef);
                     
-                    if (snap.exists()) {
-                        const data = snap.data();
-                        if (data.status !== 'lobby') {
-                            ui.toast("Game has already started!", 'error');
-                            return;
-                        }
-                        
-                        if (data.players && data.players[safeName]) {
-                             ui.toast("Name already taken in this room!", 'error');
-                             return;
-                        }
-
-                        await updateDoc(gameRef, {
-                            [`players.${safeName}`]: {
-                                name: safeName,
-                                score: 0,
-                                isHost: false,
-                                joinedAt: new Date()
-                            }
-                        });
-
-                        this.playerName = safeName;
-                        this.gameCode = code;
-                        this.startListening();
-                        this.showLobby();
-                    } else {
-                        ui.toast("Room not found! Check the code.", 'error');
+                    if (!snap.exists()) {
+                        ui.toast("Room not found!", 'error');
+                        ui.setLoading('btnJoin', false, 'Join Room');
+                        return;
                     }
+
+                    if (snap.data().status !== 'lobby') {
+                        ui.toast("Game already started!", 'error');
+                        ui.setLoading('btnJoin', false, 'Join Room');
+                        return;
+                    }
+
+                    if (snap.data().players && snap.data().players[safeName]) {
+                         ui.toast("Name taken!", 'error');
+                         ui.setLoading('btnJoin', false, 'Join Room');
+                         return;
+                    }
+
+                    await updateDoc(gameRef, {
+                        [`players.${safeName}`]: {
+                            name: safeName,
+                            score: 0,
+                            isHost: false,
+                            joinedAt: new Date()
+                        }
+                    });
+
+                    this.playerName = safeName;
+                    this.gameCode = code;
+                    this.startListening();
+                    this.showLobby();
                 } catch (error) {
                     console.error(error);
                     ui.toast("Error joining game.", 'error');
@@ -526,15 +586,16 @@
                 }
             },
 
+            // --- Game Flow Control ---
+
             async startGame() {
                 if (!this.isHost) return;
-
                 const btn = document.getElementById('startGameBtn');
                 btn.disabled = true;
-                btn.innerHTML = 'Starting...';
+                btn.textContent = 'Starting...';
 
-                // Randomize Players
                 const playerNames = Object.keys(this.players);
+                // Shuffle turn order
                 for (let i = playerNames.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [playerNames[i], playerNames[j]] = [playerNames[j], playerNames[i]];
@@ -543,78 +604,126 @@
                 try {
                     await updateDoc(doc(db, 'games', this.gameCode), {
                         status: 'playing',
-                        phase: 'selecting',
+                        phase: 'setup',
                         turnOrder: playerNames,
                         turnIndex: 0,
                         currentRound: 1,
-                        startedAt: new Date(),
-                        currentQuestion: null,
-                        answers: {}
+                        setupCount: 0, // Track how many finished setup
+                        guesses: {}
                     });
-                } catch (e) { 
+                } catch (e) {
                     console.error(e);
-                    ui.toast("Error starting game", 'error');
+                    ui.toast('Failed to start', 'error');
                     btn.disabled = false;
                     btn.textContent = 'Start Game';
                 }
             },
 
-            async pickQuestion(qText) {
-                try {
+            async nextRound() {
+                if(!this.isHost) return;
+
+                // Advance turn index
+                let nextIndex = this.gameState.turnIndex + 1;
+
+                if (nextIndex >= this.gameState.turnOrder.length) {
+                    // Game Over -> Leaderboard
                     await updateDoc(doc(db, 'games', this.gameCode), {
-                        phase: 'answering',
-                        currentQuestion: qText,
-                        answers: {}
+                        phase: 'leaderboard'
                     });
-                } catch(e) {
-                    console.error(e);
-                    ui.toast("Error picking question", 'error');
+                } else {
+                    // Next Player Round
+                    await updateDoc(doc(db, 'games', this.gameCode), {
+                        phase: 'voting',
+                        turnIndex: nextIndex,
+                        guesses: {}
+                    });
                 }
             },
 
-            async submitAnswer() {
-                const input = document.getElementById('answerInput');
-                const val = input.value.trim();
+            // --- Setup Phase Actions ---
+
+            selectSetupQuestion(qText) {
+                // Client-side UI state transition
+                this.tempSetupQuestion = qText;
+                document.getElementById('mySelectedQuestion').textContent = qText;
+                document.getElementById('setupStep1').style.display = 'none';
+                document.getElementById('setupStep2').style.display = 'block';
+            },
+
+            async submitSetup() {
+                const answer = document.getElementById('mySetupAnswer').value.trim();
+                if(!answer) return;
+
+                document.getElementById('setupStep2').style.display = 'none';
+                document.getElementById('setupWait').style.display = 'block';
+
+                try {
+                    // 1. Save my Q&A
+                    await updateDoc(doc(db, 'games', this.gameCode), {
+                        [`players.${this.playerName}.myQuestion`]: this.tempSetupQuestion,
+                        [`players.${this.playerName}.myAnswer`]: answer
+                    });
+
+                    // 2. Check if I'm the last one (Host check logic handled via snapshot or simple counter inc?)
+                    // It's safer to have clients just update their data.
+                    // But we need a trigger to move to phase 'voting'.
+                    // Let's have the HOST check the count in onSnapshot.
+                } catch(e) {
+                    console.error(e);
+                    ui.toast("Error saving", 'error');
+                    // Reset UI on error
+                    document.getElementById('setupStep2').style.display = 'block';
+                    document.getElementById('setupWait').style.display = 'none';
+                }
+            },
+
+            // --- Voting Phase Actions ---
+
+            async submitVote() {
+                const val = document.getElementById('voteInput').value.trim();
                 if(!val) return;
 
-                const btn = document.getElementById('btnSubmitAnswer');
-                btn.disabled = true;
-                btn.textContent = "Submitting...";
+                document.getElementById('voteInput').disabled = true;
+                document.getElementById('btnSubmitVote').disabled = true;
 
                 try {
+                    // Store guesses in a map: guesses.playerUID = text
                     await updateDoc(doc(db, 'games', this.gameCode), {
-                        [`answers.${this.playerName}`]: val
+                        [`guesses.${this.playerName}`]: val
                     });
-                    document.getElementById('waitForOthersMsg').style.display = 'block';
-                    input.disabled = true;
+                    document.getElementById('votingWait').style.display = 'block';
+                    document.getElementById('votingActive').style.display = 'none';
                 } catch(e) {
                     console.error(e);
-                    ui.toast("Error submitting answer", 'error');
-                    btn.disabled = false;
-                    btn.textContent = "Submit Answer";
+                    ui.toast("Error submitting vote", 'error');
+                    document.getElementById('voteInput').disabled = false;
+                    document.getElementById('btnSubmitVote').disabled = false;
                 }
             },
+
+            // --- Listener & Rendering ---
 
             startListening() {
                 if (this.unsubscribe) this.unsubscribe();
-                this.unsubscribe = onSnapshot(doc(db, 'games', this.gameCode), (doc) => {
-                    if (doc.exists()) {
-                        const data = doc.data();
+                console.log("Starting listener for", this.gameCode);
+                this.unsubscribe = onSnapshot(doc(db, 'games', this.gameCode), (docSnap) => {
+                    console.log("Snapshot received", docSnap.exists());
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
                         this.gameState = data;
                         this.players = data.players || {};
                         
                         if (data.status === 'playing') {
-                            this.renderGame();
+                            this.renderGameLoop();
                         } else {
                             this.updateLobbyUI();
                         }
                     } else {
-                        ui.toast('Game room closed.', 'error');
+                        ui.toast('Room closed', 'error');
                         setTimeout(() => location.reload(), 2000);
                     }
                 }, (error) => {
                     console.error("Listener error:", error);
-                    ui.toast('Connection lost. Reconnecting...', 'error');
                 });
             },
 
@@ -645,96 +754,145 @@
                 }
             },
 
-            renderGame() {
+            renderGameLoop() {
                 ui.showScreen('gameScreen');
+                const { phase, turnOrder, turnIndex, players, guesses } = this.gameState;
 
-                const { phase, turnOrder, turnIndex, currentRound, currentQuestion, answers } = this.gameState;
-                const subjectName = turnOrder[turnIndex];
-                const isSubject = (this.playerName === subjectName);
-
-                // Update Header
-                document.getElementById('roundNumber').textContent = currentRound;
-                document.getElementById('subjectName').textContent = subjectName;
-
-                // Hide all phases initially
-                document.getElementById('phaseSelecting').style.display = 'none';
-                document.getElementById('phaseAnswering').style.display = 'none';
-
-                if (phase === 'selecting') {
-                    document.getElementById('phaseSelecting').style.display = 'block';
-                    document.getElementById('waitingForName').textContent = subjectName;
-
-                    if (isSubject) {
-                        document.getElementById('selectingActive').style.display = 'block';
-                        document.getElementById('selectingPassive').style.display = 'none';
-
-                        // Populate options if empty (This is a simple client-side randomizer per render,
-                        // ideally stored in DB but fine for this simple version if user picks one)
-                        const container = document.getElementById('questionOptions');
-                        if (container.innerHTML === '') {
-                            const shuffled = [...QUESTIONS_BANK].sort(() => 0.5 - Math.random());
-                            const choices = shuffled.slice(0, 3);
-                            choices.forEach(q => {
-                                const btn = document.createElement('button');
-                                btn.className = 'option-btn';
-                                btn.textContent = q;
-                                btn.onclick = () => this.pickQuestion(q);
-                                container.appendChild(btn);
-                            });
+                // HOST LOGIC: Check transitions
+                if (this.isHost) {
+                    // Transition Setup -> Voting
+                    if (phase === 'setup') {
+                        const allReady = Object.values(players).every(p => p.myQuestion && p.myAnswer);
+                        if (allReady) {
+                             updateDoc(doc(db, 'games', this.gameCode), { phase: 'voting' });
                         }
-                    } else {
-                        document.getElementById('selectingActive').style.display = 'none';
-                        document.getElementById('selectingPassive').style.display = 'block';
+                    }
+                    // Transition Voting -> Results
+                    if (phase === 'voting') {
+                        // Everyone EXCEPT subject must guess
+                        const subjectName = turnOrder[turnIndex];
+                        const guessers = turnOrder.filter(n => n !== subjectName);
+                        const allGuessed = guessers.every(n => guesses && guesses[n]);
+
+                        if (allGuessed && guessers.length > 0) {
+                            updateDoc(doc(db, 'games', this.gameCode), { phase: 'results' });
+                        }
                     }
                 }
-                else if (phase === 'answering') {
-                    document.getElementById('phaseAnswering').style.display = 'block';
-                    document.getElementById('currentQuestionText').textContent = currentQuestion;
-                    document.getElementById('targetName').textContent = subjectName;
+
+                if (phase === 'setup') {
+                    ui.showPhase('phaseSetup');
+                    // If I already submitted, ensure I'm in wait state
+                    if (players[this.playerName].myAnswer) {
+                        document.getElementById('setupStep1').style.display = 'none';
+                        document.getElementById('setupStep2').style.display = 'none';
+                        document.getElementById('setupWait').style.display = 'block';
+                    } else {
+                         // Only show Step 1 if I haven't picked yet
+                         // But if I picked Q but not A (local state), Step 2 is active.
+                         // For simplicity, if database doesn't have answer, show picking logic:
+                         if (document.getElementById('setupStep2').style.display === 'none') {
+                             document.getElementById('setupStep1').style.display = 'block';
+                             const container = document.getElementById('setupOptions');
+                             if(container.innerHTML === '') {
+                                 // Random 3
+                                 const shuffled = [...QUESTIONS_BANK].sort(() => 0.5 - Math.random()).slice(0,3);
+                                 shuffled.forEach(q => {
+                                     const btn = document.createElement('button');
+                                     btn.className = 'option-btn';
+                                     btn.textContent = q;
+                                     btn.onclick = () => this.selectSetupQuestion(q);
+                                     container.appendChild(btn);
+                                 });
+                             }
+                         }
+                    }
+                }
+                else if (phase === 'voting') {
+                    ui.showPhase('phaseVoting');
+                    const subjectName = turnOrder[turnIndex];
+                    const subjectData = players[subjectName];
+                    const isSubject = (this.playerName === subjectName);
+
+                    document.getElementById('votingSubject').textContent = subjectName;
+                    document.getElementById('votingSubjectRef').textContent = subjectName;
+                    document.getElementById('votingQuestion').textContent = subjectData.myQuestion || "Error: No Question";
 
                     if (isSubject) {
-                        document.getElementById('answeringActive').style.display = 'block';
-                        document.getElementById('answeringPassive').style.display = 'none';
+                        document.getElementById('votingActive').style.display = 'none';
+                        document.getElementById('votingPassive').style.display = 'block';
+                        document.getElementById('votingWait').style.display = 'none';
                     } else {
-                        document.getElementById('answeringActive').style.display = 'none';
-                        document.getElementById('answeringPassive').style.display = 'block';
+                        document.getElementById('votingPassive').style.display = 'none';
+
+                        // Check if I voted
+                        if (guesses && guesses[this.playerName]) {
+                            document.getElementById('votingActive').style.display = 'none';
+                            document.getElementById('votingWait').style.display = 'block';
+                        } else {
+                            document.getElementById('votingActive').style.display = 'block';
+                            document.getElementById('votingWait').style.display = 'none';
+                            // Reset inputs if new round
+                            if(document.getElementById('voteInput').disabled) {
+                                document.getElementById('voteInput').disabled = false;
+                                document.getElementById('voteInput').value = '';
+                                document.getElementById('btnSubmitVote').disabled = false;
+                            }
+                        }
+                    }
+                }
+                else if (phase === 'results') {
+                    ui.showPhase('phaseResults');
+                    const subjectName = turnOrder[turnIndex];
+                    const subjectData = players[subjectName];
+
+                    document.getElementById('resultQuestion').textContent = subjectData.myQuestion;
+                    document.getElementById('resultSubjectName').textContent = subjectName;
+                    document.getElementById('resultRealAnswer').textContent = subjectData.myAnswer;
+
+                    // Render Guesses
+                    const list = document.getElementById('guessesList');
+                    list.innerHTML = '';
+                    if (guesses) {
+                        Object.entries(guesses).forEach(([guesser, guess]) => {
+                            const div = document.createElement('div');
+                            div.style.padding = '0.5rem';
+                            div.style.borderBottom = '1px solid #eee';
+                            div.innerHTML = `<b>${guesser}</b> guessed: ${guess}`;
+                            list.appendChild(div);
+                        });
                     }
 
-                    // Check if I have answered
-                    if (answers && answers[this.playerName]) {
-                        document.getElementById('answerInput').disabled = true;
-                        document.getElementById('answerInput').value = answers[this.playerName];
-                        document.getElementById('btnSubmitAnswer').disabled = true;
-                        document.getElementById('btnSubmitAnswer').textContent = "Submitted";
-                        document.getElementById('waitForOthersMsg').style.display = 'block';
+                    // Controls
+                    if (this.isHost) {
+                        document.getElementById('hostControls').style.display = 'block';
+                        document.getElementById('playerControls').style.display = 'none';
                     } else {
-                        document.getElementById('answerInput').disabled = false;
-                        document.getElementById('btnSubmitAnswer').disabled = false;
-                        document.getElementById('btnSubmitAnswer').textContent = "Submit Answer";
-                        document.getElementById('waitForOthersMsg').style.display = 'none';
+                        document.getElementById('hostControls').style.display = 'none';
+                        document.getElementById('playerControls').style.display = 'block';
                     }
+                }
+                else if (phase === 'leaderboard') {
+                    ui.showPhase('phaseLeaderboard');
+                    // Simple table of names (score logic not implemented in this minimal loop yet, but table shows names)
+                    const table = document.getElementById('finalScores');
+                    table.innerHTML = `<tr><td>Player</td><td>Score</td></tr>` +
+                        Object.values(players).map(p => `<tr><td>${p.name}</td><td>${p.score}</td></tr>`).join('');
                 }
             },
 
+            // --- Nav ---
             showCreateGame() { ui.showScreen('createGameScreen'); setTimeout(() => document.getElementById('hostName').focus(), 100); },
             showJoinGame() { ui.showScreen('joinGameScreen'); setTimeout(() => document.getElementById('joinName').focus(), 100); },
             showHome() { ui.showScreen('homeScreen'); },
             showLobby() { ui.showScreen('lobbyScreen'); },
         };
-
         window.game = game;
 
-        // Add Enter key support
-        document.getElementById('hostName').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') game.createGame();
-        });
-        document.getElementById('joinName').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') document.getElementById('gameCode').focus();
-        });
-        document.getElementById('gameCode').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') game.joinGame();
-        });
-
+        // Key handlers
+        document.getElementById('hostName').addEventListener('keypress', (e) => { if (e.key === 'Enter') game.createGame(); });
+        document.getElementById('joinName').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('gameCode').focus(); });
+        document.getElementById('gameCode').addEventListener('keypress', (e) => { if (e.key === 'Enter') game.joinGame(); });
     </script>
 </body>
 </html>

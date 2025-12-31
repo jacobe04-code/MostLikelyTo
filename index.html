@@ -115,18 +115,55 @@
             transform: translateX(5px);
         }
 
-        input, textarea {
+        /* Player selection buttons */
+        .player-choice-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 480px) {
+            .player-choice-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .player-choice-btn {
+            background: #fff;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .player-choice-btn:hover {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .player-choice-btn.selected {
+            background: var(--primary);
+            color: white;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.4);
+        }
+
+        input {
             padding: 0.8rem;
             border: 2px solid #e2e8f0;
             border-radius: 0.5rem;
-            font-size: 1rem;
+            font-size: 16px; /* Prevents zoom on iOS */
             width: 100%;
             box-sizing: border-box;
             transition: border-color 0.2s;
-            font-family: inherit;
         }
 
-        input:focus, textarea:focus {
+        input:focus {
             outline: none;
             border-color: var(--primary);
         }
@@ -265,6 +302,14 @@
             color: var(--primary);
             margin-bottom: 0.5rem;
         }
+        .points-badge {
+            background: #38a169;
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -328,8 +373,8 @@
                 <div id="setupStep2" style="display: none;">
                     <h3>Your Answer</h3>
                     <p id="mySelectedQuestion" style="font-weight: bold; color: var(--secondary);"></p>
-                    <textarea id="mySetupAnswer" rows="3" placeholder="What is the honest truth?" maxlength="100"></textarea>
-                    <button onclick="game.submitSetup()" style="margin-top: 1rem;">Lock In</button>
+                    <p>Who fits this best?</p>
+                    <div id="setupPlayerOptions" class="player-choice-grid"></div>
                 </div>
                 <div id="setupWait" style="display: none;">
                     <h3>Waiting for others...</h3>
@@ -347,9 +392,8 @@
                 <h3 id="votingQuestion" style="color: var(--secondary); margin-bottom: 1.5rem;">---</h3>
 
                 <div id="votingActive">
-                    <p>What did <span id="votingSubjectRef" class="highlight-name"></span> answer?</p>
-                    <textarea id="voteInput" rows="3" placeholder="Type your guess..." maxlength="100"></textarea>
-                    <button id="btnSubmitVote" onclick="game.submitVote()" style="margin-top: 1rem;">Submit Guess</button>
+                    <p>Who did <span id="votingSubjectRef" class="highlight-name"></span> pick?</p>
+                    <div id="votePlayerOptions" class="player-choice-grid"></div>
                 </div>
 
                 <div id="votingPassive">
@@ -409,20 +453,20 @@
         const db = getFirestore(app);
 
         const QUESTIONS_BANK = [
-            "What is my biggest irrational fear?",
-            "What was my most embarrassing moment in high school?",
-            "If I could travel anywhere tomorrow, where would I go?",
-            "What is my absolute favorite comfort food?",
-            "Who was my first celebrity crush?",
-            "What is my dream job if money didn't matter?",
-            "If I won the lottery, what's the first ridiculous thing I'd buy?",
-            "What is a habit I have that probably annoys others?",
-            "What is my favorite movie of all time?",
-            "What is the strangest thing I've ever eaten?",
-            "If I could have any superpower, what would it be?",
-            "What is the one song I know every word to?",
-            "What is my go-to karaoke song?",
-            "Which fictional character do I relate to the most?"
+            "Who is most likely to become a millionaire by accident?",
+            "Who is most likely to survive a zombie apocalypse?",
+            "Who is most likely to cry during a sad movie?",
+            "Who is most likely to forget their own birthday?",
+            "Who is most likely to join a cult?",
+            "Who is most likely to go viral on TikTok?",
+            "Who is most likely to trip over nothing?",
+            "Who is most likely to adopt 10 cats?",
+            "Who is most likely to get arrested for something silly?",
+            "Who is most likely to win a Nobel Prize?",
+            "Who is most likely to be late to their own wedding?",
+            "Who is most likely to spend all their money on food?",
+            "Who is most likely to get lost in their own neighborhood?",
+            "Who is most likely to become a stand-up comedian?"
         ];
 
         // UI Helpers
@@ -608,7 +652,7 @@
                         turnOrder: playerNames,
                         turnIndex: 0,
                         currentRound: 1,
-                        setupCount: 0, // Track how many finished setup
+                        setupCount: 0,
                         guesses: {}
                     });
                 } catch (e) {
@@ -622,16 +666,20 @@
             async nextRound() {
                 if(!this.isHost) return;
 
-                // Advance turn index
+                // Calculate scores if moving from Results
+                // (Already done locally, just syncing? No, host should write scores)
+                // Actually, let's keep it simple: scores are updated during the reveal phase by the host client
+                // but let's do it in the nextRound transition to be clean?
+                // Or better: update scores IN the results phase immediately so they show up.
+                // See renderGameLoop -> Results section logic.
+
                 let nextIndex = this.gameState.turnIndex + 1;
 
                 if (nextIndex >= this.gameState.turnOrder.length) {
-                    // Game Over -> Leaderboard
                     await updateDoc(doc(db, 'games', this.gameCode), {
                         phase: 'leaderboard'
                     });
                 } else {
-                    // Next Player Round
                     await updateDoc(doc(db, 'games', this.gameCode), {
                         phase: 'voting',
                         turnIndex: nextIndex,
@@ -643,35 +691,37 @@
             // --- Setup Phase Actions ---
 
             selectSetupQuestion(qText) {
-                // Client-side UI state transition
                 this.tempSetupQuestion = qText;
                 document.getElementById('mySelectedQuestion').textContent = qText;
                 document.getElementById('setupStep1').style.display = 'none';
                 document.getElementById('setupStep2').style.display = 'block';
+
+                // Render Player Options
+                const container = document.getElementById('setupPlayerOptions');
+                container.innerHTML = '';
+                Object.values(this.players).forEach(p => {
+                    const btn = document.createElement('div');
+                    btn.className = 'player-choice-btn';
+                    btn.textContent = p.name;
+                    btn.onclick = () => this.submitSetup(p.name);
+                    container.appendChild(btn);
+                });
             },
 
-            async submitSetup() {
-                const answer = document.getElementById('mySetupAnswer').value.trim();
-                if(!answer) return;
+            async submitSetup(selectedPlayerName) {
+                if(!selectedPlayerName) return;
 
                 document.getElementById('setupStep2').style.display = 'none';
                 document.getElementById('setupWait').style.display = 'block';
 
                 try {
-                    // 1. Save my Q&A
                     await updateDoc(doc(db, 'games', this.gameCode), {
                         [`players.${this.playerName}.myQuestion`]: this.tempSetupQuestion,
-                        [`players.${this.playerName}.myAnswer`]: answer
+                        [`players.${this.playerName}.myAnswer`]: selectedPlayerName
                     });
-
-                    // 2. Check if I'm the last one (Host check logic handled via snapshot or simple counter inc?)
-                    // It's safer to have clients just update their data.
-                    // But we need a trigger to move to phase 'voting'.
-                    // Let's have the HOST check the count in onSnapshot.
                 } catch(e) {
                     console.error(e);
                     ui.toast("Error saving", 'error');
-                    // Reset UI on error
                     document.getElementById('setupStep2').style.display = 'block';
                     document.getElementById('setupWait').style.display = 'none';
                 }
@@ -679,25 +729,23 @@
 
             // --- Voting Phase Actions ---
 
-            async submitVote() {
-                const val = document.getElementById('voteInput').value.trim();
-                if(!val) return;
+            async submitVote(selectedPlayerName) {
+                if(!selectedPlayerName) return;
 
-                document.getElementById('voteInput').disabled = true;
-                document.getElementById('btnSubmitVote').disabled = true;
+                // Disable all buttons locally
+                const btns = document.querySelectorAll('#votePlayerOptions .player-choice-btn');
+                btns.forEach(b => b.style.pointerEvents = 'none');
 
                 try {
-                    // Store guesses in a map: guesses.playerUID = text
                     await updateDoc(doc(db, 'games', this.gameCode), {
-                        [`guesses.${this.playerName}`]: val
+                        [`guesses.${this.playerName}`]: selectedPlayerName
                     });
                     document.getElementById('votingWait').style.display = 'block';
                     document.getElementById('votingActive').style.display = 'none';
                 } catch(e) {
                     console.error(e);
                     ui.toast("Error submitting vote", 'error');
-                    document.getElementById('voteInput').disabled = false;
-                    document.getElementById('btnSubmitVote').disabled = false;
+                    btns.forEach(b => b.style.pointerEvents = 'auto');
                 }
             },
 
@@ -758,7 +806,7 @@
                 ui.showScreen('gameScreen');
                 const { phase, turnOrder, turnIndex, players, guesses } = this.gameState;
 
-                // HOST LOGIC: Check transitions
+                // HOST LOGIC: Check transitions and scoring
                 if (this.isHost) {
                     // Transition Setup -> Voting
                     if (phase === 'setup') {
@@ -767,35 +815,41 @@
                              updateDoc(doc(db, 'games', this.gameCode), { phase: 'voting' });
                         }
                     }
-                    // Transition Voting -> Results
+                    // Transition Voting -> Results + SCORING
                     if (phase === 'voting') {
-                        // Everyone EXCEPT subject must guess
                         const subjectName = turnOrder[turnIndex];
                         const guessers = turnOrder.filter(n => n !== subjectName);
                         const allGuessed = guessers.every(n => guesses && guesses[n]);
 
                         if (allGuessed && guessers.length > 0) {
-                            updateDoc(doc(db, 'games', this.gameCode), { phase: 'results' });
+                            // Calculate Scores
+                            const subjectRealAnswer = players[subjectName].myAnswer;
+                            const updates = { phase: 'results' };
+
+                            Object.entries(guesses).forEach(([guesser, guess]) => {
+                                if (guess === subjectRealAnswer) {
+                                    // Increment score
+                                    const currentScore = players[guesser].score || 0;
+                                    updates[`players.${guesser}.score`] = currentScore + 100;
+                                }
+                            });
+
+                            updateDoc(doc(db, 'games', this.gameCode), updates);
                         }
                     }
                 }
 
                 if (phase === 'setup') {
                     ui.showPhase('phaseSetup');
-                    // If I already submitted, ensure I'm in wait state
                     if (players[this.playerName].myAnswer) {
                         document.getElementById('setupStep1').style.display = 'none';
                         document.getElementById('setupStep2').style.display = 'none';
                         document.getElementById('setupWait').style.display = 'block';
                     } else {
-                         // Only show Step 1 if I haven't picked yet
-                         // But if I picked Q but not A (local state), Step 2 is active.
-                         // For simplicity, if database doesn't have answer, show picking logic:
                          if (document.getElementById('setupStep2').style.display === 'none') {
                              document.getElementById('setupStep1').style.display = 'block';
                              const container = document.getElementById('setupOptions');
                              if(container.innerHTML === '') {
-                                 // Random 3
                                  const shuffled = [...QUESTIONS_BANK].sort(() => 0.5 - Math.random()).slice(0,3);
                                  shuffled.forEach(q => {
                                      const btn = document.createElement('button');
@@ -816,7 +870,7 @@
 
                     document.getElementById('votingSubject').textContent = subjectName;
                     document.getElementById('votingSubjectRef').textContent = subjectName;
-                    document.getElementById('votingQuestion').textContent = subjectData.myQuestion || "Error: No Question";
+                    document.getElementById('votingQuestion').textContent = subjectData.myQuestion || "Error";
 
                     if (isSubject) {
                         document.getElementById('votingActive').style.display = 'none';
@@ -825,19 +879,23 @@
                     } else {
                         document.getElementById('votingPassive').style.display = 'none';
 
-                        // Check if I voted
                         if (guesses && guesses[this.playerName]) {
                             document.getElementById('votingActive').style.display = 'none';
                             document.getElementById('votingWait').style.display = 'block';
                         } else {
                             document.getElementById('votingActive').style.display = 'block';
                             document.getElementById('votingWait').style.display = 'none';
-                            // Reset inputs if new round
-                            if(document.getElementById('voteInput').disabled) {
-                                document.getElementById('voteInput').disabled = false;
-                                document.getElementById('voteInput').value = '';
-                                document.getElementById('btnSubmitVote').disabled = false;
-                            }
+
+                            // Render Options
+                            const container = document.getElementById('votePlayerOptions');
+                            container.innerHTML = '';
+                            Object.values(players).forEach(p => {
+                                const btn = document.createElement('div');
+                                btn.className = 'player-choice-btn';
+                                btn.textContent = p.name;
+                                btn.onclick = () => this.submitVote(p.name);
+                                container.appendChild(btn);
+                            });
                         }
                     }
                 }
@@ -850,20 +908,22 @@
                     document.getElementById('resultSubjectName').textContent = subjectName;
                     document.getElementById('resultRealAnswer').textContent = subjectData.myAnswer;
 
-                    // Render Guesses
                     const list = document.getElementById('guessesList');
                     list.innerHTML = '';
                     if (guesses) {
                         Object.entries(guesses).forEach(([guesser, guess]) => {
+                            const isCorrect = (guess === subjectData.myAnswer);
                             const div = document.createElement('div');
                             div.style.padding = '0.5rem';
                             div.style.borderBottom = '1px solid #eee';
-                            div.innerHTML = `<b>${guesser}</b> guessed: ${guess}`;
+                            div.innerHTML = `
+                                <b>${guesser}</b> guessed: ${guess}
+                                ${isCorrect ? '<span class="points-badge">+100</span>' : ''}
+                            `;
                             list.appendChild(div);
                         });
                     }
 
-                    // Controls
                     if (this.isHost) {
                         document.getElementById('hostControls').style.display = 'block';
                         document.getElementById('playerControls').style.display = 'none';
@@ -874,10 +934,17 @@
                 }
                 else if (phase === 'leaderboard') {
                     ui.showPhase('phaseLeaderboard');
-                    // Simple table of names (score logic not implemented in this minimal loop yet, but table shows names)
+                    // Sort by score
+                    const sortedPlayers = Object.values(players).sort((a,b) => (b.score||0) - (a.score||0));
+
                     const table = document.getElementById('finalScores');
                     table.innerHTML = `<tr><td>Player</td><td>Score</td></tr>` +
-                        Object.values(players).map(p => `<tr><td>${p.name}</td><td>${p.score}</td></tr>`).join('');
+                        sortedPlayers.map((p, i) => `
+                            <tr>
+                                <td>${i+1}. ${p.name}</td>
+                                <td>${p.score || 0}</td>
+                            </tr>
+                        `).join('');
                 }
             },
 

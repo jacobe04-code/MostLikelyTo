@@ -83,6 +83,7 @@
             cursor: pointer;
             transition: transform 0.1s, opacity 0.2s;
             width: 100%;
+            margin-bottom: 0.5rem;
         }
 
         button:active {
@@ -100,7 +101,21 @@
             color: var(--text);
         }
 
-        input {
+        button.option-btn {
+            background: #fff;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            text-align: left;
+            margin-bottom: 0.8rem;
+            padding: 1rem;
+        }
+
+        button.option-btn:hover {
+            background: #f7fafc;
+            transform: translateX(5px);
+        }
+
+        input, textarea {
             padding: 0.8rem;
             border: 2px solid #e2e8f0;
             border-radius: 0.5rem;
@@ -108,9 +123,10 @@
             width: 100%;
             box-sizing: border-box;
             transition: border-color 0.2s;
+            font-family: inherit;
         }
 
-        input:focus {
+        input:focus, textarea:focus {
             outline: none;
             border-color: var(--primary);
         }
@@ -157,6 +173,20 @@
             font-size: 0.7rem;
             padding: 0.2rem 0.5rem;
             border-radius: 1rem;
+            font-weight: bold;
+        }
+
+        .game-header-info {
+            background: #f7fafc;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 1rem;
+        }
+
+        .highlight-name {
+            color: var(--secondary);
             font-weight: bold;
         }
 
@@ -259,11 +289,42 @@
 
         <!-- SCREEN 5: GAMEPLAY -->
         <div id="gameScreen" class="screen">
-            <h2 id="gameStatus">Game Started!</h2>
-            <div id="questionArea" style="padding: 20px; text-align: center; background: #f7fafc; border-radius: 0.5rem; margin: 1rem 0;">
-                Waiting for host to pick a question...
+            <div class="game-header-info">
+                Round <span id="roundNumber">1</span> •
+                Subject: <span id="subjectName" class="highlight-name">---</span>
             </div>
-            <button onclick="location.reload()" class="secondary">Quit Game</button>
+
+            <!-- Phase: Selecting -->
+            <div id="phaseSelecting" style="display: none;">
+                <div id="selectingActive">
+                    <h3>Pick a Question!</h3>
+                    <p style="font-size: 0.9rem; color: #718096;">Choose a question for others to answer about you.</p>
+                    <div id="questionOptions"></div>
+                </div>
+                <div id="selectingPassive">
+                    <h3>Waiting...</h3>
+                    <p><span id="waitingForName" class="highlight-name"></span> is choosing a question.</p>
+                    <div class="loading-spinner" style="border-color: var(--primary); border-top-color: transparent;"></div>
+                </div>
+            </div>
+
+            <!-- Phase: Answering -->
+            <div id="phaseAnswering" style="display: none;">
+                <h3 id="currentQuestionText" style="color: var(--secondary); margin-bottom: 1.5rem;">---</h3>
+
+                <div id="answeringActive">
+                    <p>What is your <b>honest</b> answer?</p>
+                </div>
+                <div id="answeringPassive">
+                    <p>What do you think <span id="targetName" class="highlight-name"></span> would say?</p>
+                </div>
+
+                <textarea id="answerInput" rows="3" placeholder="Type your answer here..." maxlength="100"></textarea>
+                <button id="btnSubmitAnswer" onclick="game.submitAnswer()" style="margin-top: 1rem;">Submit Answer</button>
+                <p id="waitForOthersMsg" style="display:none; color: #38a169; margin-top: 1rem;">Answer Submitted! Waiting for others...</p>
+            </div>
+
+            <button onclick="location.reload()" class="secondary" style="margin-top: 2rem;">Quit Game</button>
         </div>
     </div>
 
@@ -285,6 +346,23 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+
+        const QUESTIONS_BANK = [
+            "What is my biggest irrational fear?",
+            "What was my most embarrassing moment in high school?",
+            "If I could travel anywhere tomorrow, where would I go?",
+            "What is my absolute favorite comfort food?",
+            "Who was my first celebrity crush?",
+            "What is my dream job if money didn't matter?",
+            "If I won the lottery, what's the first ridiculous thing I'd buy?",
+            "What is a habit I have that probably annoys others?",
+            "What is my favorite movie of all time?",
+            "What is the strangest thing I've ever eaten?",
+            "If I could have any superpower, what would it be?",
+            "What is the one song I know every word to?",
+            "What is my go-to karaoke song?",
+            "Which fictional character do I relate to the most?"
+        ];
 
         // UI Helpers
         const ui = {
@@ -329,7 +407,6 @@
                 document.getElementById('btnInitCreate').disabled = false;
                 document.getElementById('btnInitJoin').disabled = false;
 
-                // Clear loading indicators on initial buttons
                 document.getElementById('btnInitCreate').innerHTML = 'Create Game';
                 document.getElementById('btnInitJoin').innerHTML = 'Join Game';
             } else {
@@ -344,6 +421,7 @@
             gameCode: null,
             playerName: null,
             players: {},
+            gameState: null, // holds full doc data
             isHost: false,
             unsubscribe: null,
 
@@ -455,11 +533,23 @@
                 btn.disabled = true;
                 btn.innerHTML = 'Starting...';
 
+                // Randomize Players
+                const playerNames = Object.keys(this.players);
+                for (let i = playerNames.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [playerNames[i], playerNames[j]] = [playerNames[j], playerNames[i]];
+                }
+
                 try {
                     await updateDoc(doc(db, 'games', this.gameCode), {
                         status: 'playing',
+                        phase: 'selecting',
+                        turnOrder: playerNames,
+                        turnIndex: 0,
                         currentRound: 1,
-                        startedAt: new Date()
+                        startedAt: new Date(),
+                        currentQuestion: null,
+                        answers: {}
                     });
                 } catch (e) { 
                     console.error(e);
@@ -469,20 +559,56 @@
                 }
             },
 
+            async pickQuestion(qText) {
+                try {
+                    await updateDoc(doc(db, 'games', this.gameCode), {
+                        phase: 'answering',
+                        currentQuestion: qText,
+                        answers: {}
+                    });
+                } catch(e) {
+                    console.error(e);
+                    ui.toast("Error picking question", 'error');
+                }
+            },
+
+            async submitAnswer() {
+                const input = document.getElementById('answerInput');
+                const val = input.value.trim();
+                if(!val) return;
+
+                const btn = document.getElementById('btnSubmitAnswer');
+                btn.disabled = true;
+                btn.textContent = "Submitting...";
+
+                try {
+                    await updateDoc(doc(db, 'games', this.gameCode), {
+                        [`answers.${this.playerName}`]: val
+                    });
+                    document.getElementById('waitForOthersMsg').style.display = 'block';
+                    input.disabled = true;
+                } catch(e) {
+                    console.error(e);
+                    ui.toast("Error submitting answer", 'error');
+                    btn.disabled = false;
+                    btn.textContent = "Submit Answer";
+                }
+            },
+
             startListening() {
                 if (this.unsubscribe) this.unsubscribe();
                 this.unsubscribe = onSnapshot(doc(db, 'games', this.gameCode), (doc) => {
                     if (doc.exists()) {
                         const data = doc.data();
+                        this.gameState = data;
                         this.players = data.players || {};
                         
                         if (data.status === 'playing') {
-                            this.showGameScreen();
+                            this.renderGame();
                         } else {
                             this.updateLobbyUI();
                         }
                     } else {
-                        // Game was deleted or doesn't exist
                         ui.toast('Game room closed.', 'error');
                         setTimeout(() => location.reload(), 2000);
                     }
@@ -493,10 +619,10 @@
             },
 
             updateLobbyUI() {
+                ui.showScreen('lobbyScreen');
                 const list = document.getElementById('lobbyPlayers');
                 list.innerHTML = '';
 
-                // Convert to array and sort by join time if available, or name
                 const playersList = Object.values(this.players).sort((a, b) => {
                     return (a.joinedAt?.seconds || 0) - (b.joinedAt?.seconds || 0);
                 });
@@ -516,13 +642,78 @@
                 if (this.isHost) {
                     const startBtn = document.getElementById('startGameBtn');
                     startBtn.style.display = 'block';
-                    // Optional: Disable start if only 1 player?
-                    // if (playersList.length < 2) startBtn.disabled = true;
                 }
             },
 
-            showGameScreen() {
+            renderGame() {
                 ui.showScreen('gameScreen');
+
+                const { phase, turnOrder, turnIndex, currentRound, currentQuestion, answers } = this.gameState;
+                const subjectName = turnOrder[turnIndex];
+                const isSubject = (this.playerName === subjectName);
+
+                // Update Header
+                document.getElementById('roundNumber').textContent = currentRound;
+                document.getElementById('subjectName').textContent = subjectName;
+
+                // Hide all phases initially
+                document.getElementById('phaseSelecting').style.display = 'none';
+                document.getElementById('phaseAnswering').style.display = 'none';
+
+                if (phase === 'selecting') {
+                    document.getElementById('phaseSelecting').style.display = 'block';
+                    document.getElementById('waitingForName').textContent = subjectName;
+
+                    if (isSubject) {
+                        document.getElementById('selectingActive').style.display = 'block';
+                        document.getElementById('selectingPassive').style.display = 'none';
+
+                        // Populate options if empty (This is a simple client-side randomizer per render,
+                        // ideally stored in DB but fine for this simple version if user picks one)
+                        const container = document.getElementById('questionOptions');
+                        if (container.innerHTML === '') {
+                            const shuffled = [...QUESTIONS_BANK].sort(() => 0.5 - Math.random());
+                            const choices = shuffled.slice(0, 3);
+                            choices.forEach(q => {
+                                const btn = document.createElement('button');
+                                btn.className = 'option-btn';
+                                btn.textContent = q;
+                                btn.onclick = () => this.pickQuestion(q);
+                                container.appendChild(btn);
+                            });
+                        }
+                    } else {
+                        document.getElementById('selectingActive').style.display = 'none';
+                        document.getElementById('selectingPassive').style.display = 'block';
+                    }
+                }
+                else if (phase === 'answering') {
+                    document.getElementById('phaseAnswering').style.display = 'block';
+                    document.getElementById('currentQuestionText').textContent = currentQuestion;
+                    document.getElementById('targetName').textContent = subjectName;
+
+                    if (isSubject) {
+                        document.getElementById('answeringActive').style.display = 'block';
+                        document.getElementById('answeringPassive').style.display = 'none';
+                    } else {
+                        document.getElementById('answeringActive').style.display = 'none';
+                        document.getElementById('answeringPassive').style.display = 'block';
+                    }
+
+                    // Check if I have answered
+                    if (answers && answers[this.playerName]) {
+                        document.getElementById('answerInput').disabled = true;
+                        document.getElementById('answerInput').value = answers[this.playerName];
+                        document.getElementById('btnSubmitAnswer').disabled = true;
+                        document.getElementById('btnSubmitAnswer').textContent = "Submitted";
+                        document.getElementById('waitForOthersMsg').style.display = 'block';
+                    } else {
+                        document.getElementById('answerInput').disabled = false;
+                        document.getElementById('btnSubmitAnswer').disabled = false;
+                        document.getElementById('btnSubmitAnswer').textContent = "Submit Answer";
+                        document.getElementById('waitForOthersMsg').style.display = 'none';
+                    }
+                }
             },
 
             showCreateGame() { ui.showScreen('createGameScreen'); setTimeout(() => document.getElementById('hostName').focus(), 100); },
@@ -531,7 +722,6 @@
             showLobby() { ui.showScreen('lobbyScreen'); },
         };
 
-        // Expose to window
         window.game = game;
 
         // Add Enter key support

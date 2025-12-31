@@ -5,199 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Do You Even Know Me? - Multiplayer Game</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 800px;
-            width: 100%;
-            padding: 40px;
-        }
-
-        h1 {
-            color: #667eea;
-            text-align: center;
-            margin-bottom: 10px;
-            font-size: 2.5em;
-        }
-
-        .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 1.1em;
-        }
-
-        .screen {
-            display: none;
-        }
-
-        .screen.active {
-            display: block;
-        }
-
-        input, button {
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            border: 2px solid #667eea;
-            border-radius: 10px;
-            font-size: 1em;
-        }
-
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            cursor: pointer;
-            font-weight: bold;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .option-button {
-            background: white;
-            color: #667eea;
-            border: 3px solid #667eea;
-            margin: 15px 0;
-            padding: 20px;
-            font-size: 1.1em;
-            transition: all 0.3s;
-        }
-
-        .option-button:hover:not(:disabled) {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .option-button.selected {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .player-list {
-            background: #f5f5f5;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-        }
-
-        .player-item {
-            background: white;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .player-name {
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .player-score {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-weight: bold;
-        }
-
-        .status-message {
-            text-align: center;
-            padding: 20px;
-            background: #f0f0f0;
-            border-radius: 10px;
-            margin: 20px 0;
-            font-size: 1.2em;
-            color: #666;
-        }
-
-        .round-info {
-            text-align: center;
-            font-size: 1.5em;
-            color: #667eea;
-            margin: 20px 0;
-            font-weight: bold;
-        }
-
-        .prompt-text {
-            text-align: center;
-            font-size: 1.8em;
-            color: #333;
-            margin: 30px 0;
-            padding: 20px;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-            border-radius: 15px;
-            font-weight: bold;
-        }
-
-        .timer {
-            text-align: center;
-            font-size: 2em;
-            color: #764ba2;
-            margin: 20px 0;
-            font-weight: bold;
-        }
-
-        .game-code {
-            text-align: center;
-            font-size: 1.5em;
-            color: #667eea;
-            margin: 20px 0;
-            padding: 15px;
-            background: #f0f0f0;
-            border-radius: 10px;
-            font-weight: bold;
-        }
-
-        .leaderboard-header {
-            text-align: center;
-            font-size: 2em;
-            color: #667eea;
-            margin: 30px 0 20px 0;
-        }
-
-        .winner {
-            text-align: center;
-            font-size: 2.5em;
-            color: #764ba2;
-            margin: 20px 0;
-            animation: celebrate 1s infinite alternate;
-        }
-
-        @keyframes celebrate {
-            from { transform: scale(1); }
-            to { transform: scale(1.1); }
-        }
+        * {margin: 0; padding: 0; box-sizing: border-box;}
+        body {font-family: 'Arial', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px;}
+        .container {background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 800px; width: 100%; padding: 40px;}
+        h1 {color: #667eea; text-align: center; margin-bottom: 10px; font-size: 2.5em;}
+        .subtitle {text-align: center; color: #666; margin-bottom: 30px; font-size: 1.1em;}
+        .screen {display: none;}
+        .screen.active {display: block;}
+        input, button {width: 100%; padding: 15px; margin: 10px 0; border: 2px solid #667eea; border-radius: 10px; font-size: 1em;}
+        button {background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; cursor: pointer; font-weight: bold; transition: transform 0.2s, box-shadow 0.2s;}
+        button:hover {transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);}
+        button:disabled {background: #ccc; cursor: not-allowed; transform: none;}
+        .option-button {background: white; color: #667eea; border: 3px solid #667eea; margin: 15px 0; padding: 20px; font-size: 1.1em; transition: all 0.3s;}
+        .player-item {background: white; padding: 15px; margin: 10px 0; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); color: #333;}
+        .player-name {font-weight: bold; color: #667eea;}
     </style>
 </head>
 <body>
@@ -205,20 +26,17 @@
         <h1>🎭 Do You Even Know Me?</h1>
         <p class="subtitle">How Well Do Your Friends Know You?</p>
 
-        <!-- Home Screen -->
         <div id="homeScreen" class="screen active">
             <button onclick="game.showCreateGame()">Create Game</button>
             <button onclick="game.showJoinGame()">Join Game</button>
         </div>
 
-        <!-- Create Game Screen -->
         <div id="createGameScreen" class="screen">
             <input type="text" id="hostName" placeholder="Enter your name" maxlength="20">
             <button onclick="game.createGame()">Create Game</button>
             <button onclick="game.showHome()">Back</button>
         </div>
 
-        <!-- Join Game Screen -->
         <div id="joinGameScreen" class="screen">
             <input type="text" id="joinName" placeholder="Enter your name" maxlength="20">
             <input type="text" id="gameCode" placeholder="Enter 4-letter game code" maxlength="4" style="text-transform: uppercase;">
@@ -226,519 +44,121 @@
             <button onclick="game.showHome()">Back</button>
         </div>
 
-        <!-- Lobby Screen -->
         <div id="lobbyScreen" class="screen">
-            <div class="game-code" id="lobbyCode"></div>
-            <h2 style="text-align: center; margin: 20px 0;">Waiting for Players...</h2>
-            <div class="player-list" id="lobbyPlayers"></div>
-            <button id="startGameBtn" onclick="game.startGame()" style="display: none;">Start Game</button>
-            <button onclick="game.leaveGame()">Leave Game</button>
-        </div>
-
-        <!-- Selection Screen (for current player) -->
-        <div id="selectionScreen" class="screen">
-            <div class="round-info" id="roundInfo"></div>
-            <div class="prompt-text" id="selectionPrompt"></div>
-            <div id="selectionOptions"></div>
-        </div>
-
-        <!-- Waiting Screen -->
-        <div id="waitingScreen" class="screen">
-            <div class="round-info" id="waitingRoundInfo"></div>
-            <div class="status-message" id="waitingMessage"></div>
-        </div>
-
-        <!-- Voting Screen -->
-        <div id="votingScreen" class="screen">
-            <div class="round-info" id="votingRoundInfo"></div>
-            <div class="prompt-text" id="votingPrompt"></div>
-            <div class="status-message" id="votingPlayer"></div>
-            <div id="votingOptions"></div>
-        </div>
-
-        <!-- Leaderboard Screen -->
-        <div id="leaderboardScreen" class="screen">
-            <h2 class="leaderboard-header" id="leaderboardTitle">Round Results</h2>
-            <div class="player-list" id="leaderboardList"></div>
-            <button id="nextRoundBtn" onclick="game.nextRound()" style="display: none;">Next Round</button>
-        </div>
-
-        <!-- Final Results Screen -->
-        <div id="finalScreen" class="screen">
-            <div class="winner" id="winnerName"></div>
-            <h2 class="leaderboard-header">Final Standings</h2>
-            <div class="player-list" id="finalLeaderboard"></div>
-            <button onclick="game.playAgain()">Play Again</button>
-            <button onclick="game.showHome()">Main Menu</button>
+            <div id="lobbyCode" style="text-align: center; font-size: 1.5em; font-weight: bold; color: #667eea; margin-bottom: 20px;"></div>
+            <h2 style="text-align: center; color: #333;">Waiting for Players...</h2>
+            <div id="lobbyPlayers" style="margin: 20px 0;"></div>
+            <button id="startGameBtn" style="display: none;">Start Game</button>
+            <button onclick="location.reload()">Leave Game</button>
         </div>
     </div>
 
-    <script>
-        // Game prompts - "Do You Even Know Me?" style questions
-        const prompts = [
-            {
-                text: "My dream vacation would be:",
-                options: ["Beach resort paradise", "Mountain adventure hiking", "European city tour", "Tropical jungle expedition"]
-            },
-            {
-                text: "My biggest fear is:",
-                options: ["Heights", "Public speaking", "Spiders/bugs", "Being alone"]
-            },
-            {
-                text: "If I could have any superpower:",
-                options: ["Flying", "Reading minds", "Invisibility", "Time travel"]
-            },
-            {
-                text: "My ideal way to spend a Saturday:",
-                options: ["Netflix marathon at home", "Out with friends partying", "Outdoor activities/sports", "Shopping or exploring"]
-            },
-            {
-                text: "My guilty pleasure food is:",
-                options: ["Pizza", "Ice cream", "Fast food burgers", "Chocolate/candy"]
-            },
-            {
-                text: "If I won the lottery, I'd first:",
-                options: ["Buy a house", "Travel the world", "Give to family/charity", "Invest it wisely"]
-            },
-            {
-                text: "My go-to karaoke song would be:",
-                options: ["Classic rock anthem", "90s/2000s pop hit", "Current chart topper", "I don't do karaoke!"]
-            },
-            {
-                text: "My biggest pet peeve is:",
-                options: ["People chewing loudly", "Being late", "Messy spaces", "Slow internet"]
-            },
-            {
-                text: "In a zombie apocalypse, I'd be the one:",
-                options: ["Making the plans", "Finding supplies", "Protecting everyone", "Keeping morale up"]
-            },
-            {
-                text: "My morning routine includes:",
-                options: ["Snoozing the alarm 5 times", "Working out", "Coffee first, everything else second", "Jumping right into the day"]
-            },
-            {
-                text: "My comfort movie/show genre:",
-                options: ["Comedy sitcoms", "Action/adventure", "Horror/thriller", "Romance/drama"]
-            },
-            {
-                text: "When stressed, I usually:",
-                options: ["Eat comfort food", "Exercise it out", "Talk to someone", "Sleep or zone out"]
-            },
-            {
-                text: "My hidden talent is:",
-                options: ["Cooking/baking", "Singing or dancing", "Art or crafts", "Random trivia knowledge"]
-            },
-            {
-                text: "My first thought when waking up:",
-                options: ["5 more minutes...", "What's for breakfast?", "Check my phone", "Let's get this day started!"]
-            },
-            {
-                text: "My favorite season is:",
-                options: ["Summer", "Fall", "Winter", "Spring"]
-            },
-            {
-                text: "At a party, you'll find me:",
-                options: ["Dancing in the center", "Deep in conversation", "By the snacks", "Chilling in a corner"]
-            },
-            {
-                text: "My phone battery is usually:",
-                options: ["Always charged (99%+)", "Decent (50-80%)", "Running low (20-40%)", "Critical mode (<20%)"]
-            },
-            {
-                text: "My dream pet would be:",
-                options: ["Dog", "Cat", "Something exotic (reptile/bird)", "No pets for me"]
-            },
-            {
-                text: "I make decisions based on:",
-                options: ["Logic and facts", "Gut feelings", "What others think", "Flip a coin honestly"]
-            },
-            {
-                text: "My late-night snack of choice:",
-                options: ["Chips/salty snacks", "Sweet treats", "Leftovers from dinner", "Cereal"]
-            }
-        ];
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
-        // Game state management
+        const firebaseConfig = {
+            apiKey: "AIzaSyDU9G49CHpWAl_JDhhgeyiz8ezn5hg40Ek",
+            authDomain: "mostlikelyto.firebaseapp.com",
+            projectId: "mostlikelyto",
+            storageBucket: "mostlikelyto.firebasestorage.app",
+            messagingSenderId: "826481623010",
+            appId: "1:826481623010:web:d28043916cd39278e803bb",
+            measurementId: "G-1C20S44D0E"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Sign in anonymously immediately
+        signInAnonymously(auth).catch(err => console.error("Auth Error", err));
+
         const game = {
             gameCode: null,
             playerName: null,
             players: {},
-            currentRound: 0,
-            totalRounds: 5,
             isHost: false,
-            currentPlayer: null,
-            currentPrompt: null,
-            selectedOption: null,
-            hasVoted: false,
-            votes: {},
+            unsubscribe: null,
 
-            // Firebase integration placeholder
-            // Replace these with your actual Firebase functions
-	const firebaseConfig = {
-  apiKey: "AIzaSyDU9G49CHpWAl_JDhhgeyiz8ezn5hg40Ek",
-  authDomain: "mostlikelyto.firebaseapp.com",
-  projectId: "mostlikelyto",
-  storageBucket: "mostlikelyto.firebasestorage.app",
-  messagingSenderId: "826481623010",
-  appId: "1:826481623010:web:d28043916cd39278e803bb",
-  measurementId: "G-1C20S44D0E"
-};
             async createGame() {
-    const name = document.getElementById('hostName').value.trim();
-    if (!name) { alert('Please enter your name'); return; }
+                const name = document.getElementById('hostName').value.trim();
+                if (!name) { alert('Please enter your name'); return; }
 
-    this.playerName = name;
-    this.isHost = true;
-    this.gameCode = this.generateCode();
+                this.playerName = name;
+                this.isHost = true;
+                this.gameCode = Math.random().toString(36).substring(2, 6).toUpperCase();
 
-    // FIXED: Real Firebase logic to create the session
-    try {
-        const gameRef = doc(db, 'games', this.gameCode);
-        await setDoc(gameRef, {
-            status: 'lobby',
-            createdAt: new Date().toISOString(),
-            players: {
-                [name]: { name: name, score: 0, isHost: true }
-            }
-        });
-        
-        this.players = { [name]: { name: name, score: 0, isHost: true } };
-        this.showLobby();
-    } catch (error) {
-        console.error("Error creating game:", error);
-        alert("Failed to create game. Check your Firebase Rules!");
-    }
-},
-
-async joinGame() {
-    const name = document.getElementById('joinName').value.trim();
-    const code = document.getElementById('gameCode').value.trim().toUpperCase();
-    if (!name || !code) { alert('Please enter your name and game code'); return; }
-
-    try {
-        const gameRef = doc(db, 'games', code);
-        const snap = await getDoc(gameRef);
-        
-        if (snap.exists()) {
-            const data = snap.data();
-            const players = data.players || {};
-            players[name] = { name: name, score: 0, isHost: false };
-            await updateDoc(gameRef, { players: players });
-            
-            this.playerName = name;
-            this.gameCode = code;
-            this.players = players;
-            this.showLobby();
-        } else {
-            alert("Game room not found!");
-        }
-    } catch (error) {
-        console.error("Join error:", error);
-    }
-},
-
-            startGame() {
-                if (!this.isHost) return;
-                
-                if (Object.keys(this.players).length < 1) {
-                    alert('Need at least 1 player to start');
-                    return;
-                }
-                
-                // TODO: Firebase - Update game state to 'playing'
-                this.currentRound = 1;
-                this.startRound();
-            },
-
-            startRound() {
-                // Select random player for this round
-                const playerNames = Object.keys(this.players);
-                this.currentPlayer = playerNames[Math.floor(Math.random() * playerNames.length)];
-                
-                // Select random prompt
-                this.currentPrompt = prompts[Math.floor(Math.random() * prompts.length)];
-                
-                this.selectedOption = null;
-                this.hasVoted = false;
-                this.votes = {};
-                
-                // TODO: Firebase - Broadcast round start
-                
-                this.showRoundScreen();
-            },
-
-            showRoundScreen() {
-                this.hideAllScreens();
-                
-                if (this.playerName === this.currentPlayer) {
-                    // Show selection screen
-                    document.getElementById('selectionScreen').classList.add('active');
-                    document.getElementById('roundInfo').textContent = `Round ${this.currentRound} of ${this.totalRounds}`;
-                    document.getElementById('selectionPrompt').textContent = this.currentPrompt.text;
-                    
-                    const optionsDiv = document.getElementById('selectionOptions');
-                    optionsDiv.innerHTML = '';
-                    
-                    this.currentPrompt.options.forEach((option, index) => {
-                        const btn = document.createElement('button');
-                        btn.className = 'option-button';
-                        btn.textContent = option;
-                        btn.onclick = () => this.selectOption(index);
-                        optionsDiv.appendChild(btn);
+                try {
+                    const gameRef = doc(db, 'games', this.gameCode);
+                    await setDoc(gameRef, {
+                        status: 'lobby',
+                        players: { [name]: { name: name, score: 0, isHost: true } }
                     });
-                } else {
-                    // Show waiting screen
-                    document.getElementById('waitingScreen').classList.add('active');
-                    document.getElementById('waitingRoundInfo').textContent = `Round ${this.currentRound} of ${this.totalRounds}`;
-                    document.getElementById('waitingMessage').textContent = 
-                        `Waiting for ${this.currentPlayer} to make their selection...`;
+                    this.startListening();
+                    this.showLobby();
+                } catch (error) {
+                    alert("Check your Firebase Rules! Permission denied.");
                 }
             },
 
-            selectOption(index) {
-                this.selectedOption = index;
-                
-                // Update UI to show selection
-                const buttons = document.querySelectorAll('#selectionOptions .option-button');
-                buttons.forEach((btn, i) => {
-                    btn.classList.toggle('selected', i === index);
-                });
-                
-                // TODO: Firebase - Send selection
-                
-                // Move to voting phase
-                setTimeout(() => {
-                    // If playing solo, automatically proceed to end round
-                    if (Object.keys(this.players).length === 1) {
-                        this.selectedOption = index;
-                        this.endRound();
+            async joinGame() {
+                const name = document.getElementById('joinName').value.trim();
+                const code = document.getElementById('gameCode').value.trim().toUpperCase();
+                if (!name || !code) { alert('Enter name and code'); return; }
+
+                try {
+                    const gameRef = doc(db, 'games', code);
+                    const snap = await getDoc(gameRef);
+                    if (snap.exists()) {
+                        const players = snap.data().players;
+                        players[name] = { name: name, score: 0, isHost: false };
+                        await updateDoc(gameRef, { players: players });
+                        this.playerName = name;
+                        this.gameCode = code;
+                        this.startListening();
+                        this.showLobby();
                     } else {
-                        this.startVoting();
+                        alert("Room not found!");
                     }
-                }, 1000);
-            },
-
-            startVoting() {
-                // TODO: Firebase - Broadcast voting phase
-                this.showVotingScreen();
-            },
-
-            showVotingScreen() {
-                this.hideAllScreens();
-                document.getElementById('votingScreen').classList.add('active');
-                document.getElementById('votingRoundInfo').textContent = `Round ${this.currentRound} of ${this.totalRounds}`;
-                document.getElementById('votingPrompt').textContent = this.currentPrompt.text;
-                document.getElementById('votingPlayer').textContent = 
-                    `What did ${this.currentPlayer} choose?`;
-                
-                const optionsDiv = document.getElementById('votingOptions');
-                optionsDiv.innerHTML = '';
-                
-                this.currentPrompt.options.forEach((option, index) => {
-                    const btn = document.createElement('button');
-                    btn.className = 'option-button';
-                    btn.textContent = option;
-                    btn.onclick = () => this.vote(index);
-                    
-                    if (this.playerName === this.currentPlayer) {
-                        btn.disabled = true;
-                        if (index === this.selectedOption) {
-                            btn.classList.add('selected');
-                        }
-                    }
-                    
-                    optionsDiv.appendChild(btn);
-                });
-            },
-
-            vote(index) {
-                if (this.playerName === this.currentPlayer || this.hasVoted) return;
-                
-                this.hasVoted = true;
-                this.votes[this.playerName] = index;
-                
-                // Update UI
-                const buttons = document.querySelectorAll('#votingOptions .option-button');
-                buttons.forEach((btn, i) => {
-                    btn.disabled = true;
-                    btn.classList.toggle('selected', i === index);
-                });
-                
-                // TODO: Firebase - Send vote
-                
-                // Check if all players have voted (excluding current player)
-                this.checkAllVotesIn();
-            },
-            
-            checkAllVotesIn() {
-                const playerCount = Object.keys(this.players).length;
-                const votesNeeded = playerCount - 1; // Everyone except current player
-                const votesReceived = Object.keys(this.votes).length;
-                
-                if (votesReceived >= votesNeeded) {
-                    // All votes are in, end the round
-                    setTimeout(() => this.endRound(), 1500);
+                } catch (error) {
+                    alert("Error joining. Check Firebase Rules.");
                 }
             },
 
-            endRound() {
-                // Calculate scores
-                let correctVotes = 0;
-                Object.keys(this.votes).forEach(voter => {
-                    if (this.votes[voter] === this.selectedOption) {
-                        // Voter gets 100 points for being correct
-                        this.players[voter].score += 100;
-                        correctVotes++;
+            startListening() {
+                if (this.unsubscribe) this.unsubscribe();
+                const gameRef = doc(db, 'games', this.gameCode);
+                this.unsubscribe = onSnapshot(gameRef, (doc) => {
+                    if (doc.exists()) {
+                        this.players = doc.data().players;
+                        this.updateLobbyUI();
                     }
                 });
-                
-                // Current player gets 50 points per correct vote
-                this.players[this.currentPlayer].score += correctVotes * 50;
-                
-                // TODO: Firebase - Update scores
-                
-                this.showLeaderboard();
             },
 
-            showLeaderboard() {
-                this.hideAllScreens();
-                document.getElementById('leaderboardScreen').classList.add('active');
-                
-                const isLastRound = this.currentRound >= this.totalRounds;
-                document.getElementById('leaderboardTitle').textContent = 
-                    isLastRound ? 'Final Results!' : `Round ${this.currentRound} Complete!`;
-                
-                const sorted = Object.values(this.players).sort((a, b) => b.score - a.score);
-                const list = document.getElementById('leaderboardList');
-                list.innerHTML = '';
-                
-                sorted.forEach((player, index) => {
-                    const div = document.createElement('div');
-                    div.className = 'player-item';
-                    div.innerHTML = `
-                        <span>${index + 1}. <span class="player-name">${player.name}</span></span>
-                        <span class="player-score">${player.score} pts</span>
-                    `;
-                    list.appendChild(div);
-                });
-                
-                const nextBtn = document.getElementById('nextRoundBtn');
-                if (this.isHost) {
-                    nextBtn.style.display = 'block';
-                    nextBtn.textContent = isLastRound ? 'View Final Results' : 'Next Round';
-                } else {
-                    nextBtn.style.display = 'none';
-                }
-            },
-
-            nextRound() {
-                if (this.currentRound >= this.totalRounds) {
-                    this.showFinalResults();
-                } else {
-                    this.currentRound++;
-                    this.startRound();
-                }
-            },
-
-            showFinalResults() {
-                this.hideAllScreens();
-                document.getElementById('finalScreen').classList.add('active');
-                
-                const sorted = Object.values(this.players).sort((a, b) => b.score - a.score);
-                document.getElementById('winnerName').textContent = `🎉 ${sorted[0].name} Wins! 🎉`;
-                
-                const list = document.getElementById('finalLeaderboard');
-                list.innerHTML = '';
-                
-                sorted.forEach((player, index) => {
-                    const div = document.createElement('div');
-                    div.className = 'player-item';
-                    div.innerHTML = `
-                        <span>${index + 1}. <span class="player-name">${player.name}</span></span>
-                        <span class="player-score">${player.score} pts</span>
-                    `;
-                    list.appendChild(div);
-                });
-            },
-
-            playAgain() {
-                // Reset game state
-                Object.keys(this.players).forEach(key => {
-                    this.players[key].score = 0;
-                });
-                this.currentRound = 0;
-                this.showLobby();
-            },
-
-            showLobby() {
-                this.hideAllScreens();
-                document.getElementById('lobbyScreen').classList.add('active');
-                document.getElementById('lobbyCode').textContent = `Game Code: ${this.gameCode}`;
-                
-                this.updateLobbyPlayers();
-                
-                if (this.isHost) {
-                    document.getElementById('startGameBtn').style.display = 'block';
-                }
-            },
-
-            updateLobbyPlayers() {
+            updateLobbyUI() {
                 const list = document.getElementById('lobbyPlayers');
-                list.innerHTML = '<h3 style="margin-bottom: 15px;">Players:</h3>';
-                
-                Object.values(this.players).forEach(player => {
+                list.innerHTML = '';
+                Object.values(this.players).forEach(p => {
                     const div = document.createElement('div');
                     div.className = 'player-item';
-                    div.innerHTML = `
-                        <span class="player-name">${player.name}</span>
-                        ${player.isHost ? '<span style="color: #764ba2;">👑 Host</span>' : ''}
-                    `;
+                    div.innerHTML = `<span class="player-name">${p.name}</span> ${p.isHost ? '👑' : ''}`;
                     list.appendChild(div);
                 });
+                document.getElementById('lobbyCode').textContent = `CODE: ${this.gameCode}`;
             },
 
-            leaveGame() {
-                // TODO: Firebase - Remove player from game
-                this.showHome();
-            },
-
-            showHome() {
-                this.hideAllScreens();
-                document.getElementById('homeScreen').classList.add('active');
-                this.gameCode = null;
-                this.players = {};
-                this.isHost = false;
-            },
-
-            showCreateGame() {
-                this.hideAllScreens();
-                document.getElementById('createGameScreen').classList.add('active');
-            },
-
-            showJoinGame() {
-                this.hideAllScreens();
-                document.getElementById('joinGameScreen').classList.add('active');
-            },
-
-            hideAllScreens() {
-                document.querySelectorAll('.screen').forEach(screen => {
-                    screen.classList.remove('active');
-                });
-            },
-
-            generateCode() {
-                const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-                let code = '';
-                for (let i = 0; i < 4; i++) {
-                    code += letters.charAt(Math.floor(Math.random() * letters.length));
-                }
-                return code;
-            }
+            showCreateGame() { this.hideAll(); document.getElementById('createGameScreen').classList.add('active'); },
+            showJoinGame() { this.hideAll(); document.getElementById('joinGameScreen').classList.add('active'); },
+            showHome() { this.hideAll(); document.getElementById('homeScreen').classList.add('active'); },
+            showLobby() { this.hideAll(); document.getElementById('lobbyScreen').classList.add('active'); },
+            hideAll() { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); }
         };
 
-        // Initialize
-        console.log('🎮 Do You Even Know Me? - Ready to play!');
-        console.log('📝 TODO: Integrate with Firebase for real multiplayer functionality');
+        // EXPOSE TO WINDOW for HTML onclick
+        window.game = game;
     </script>
 </body>
 </html>
